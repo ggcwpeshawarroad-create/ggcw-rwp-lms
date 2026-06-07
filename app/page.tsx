@@ -1,67 +1,171 @@
-import Link from "next/link"
-import { GraduationCap, Rocket, ShieldCheck } from "lucide-react"
+"use client"
 
-export default function LandingPage() {
+import { GraduationCap } from "lucide-react"
+import { useState } from "react"
+import { signIn, getSession, useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
+
+export default function LoginPage() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const { data: session, status } = useSession()
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.role) {
+      const role = session.user.role
+      if (role === "ADMIN") {
+        router.push("/admin")
+      } else if (role === "TEACHER") {
+        router.push("/teacher")
+      } else if (role === "STUDENT") {
+        router.push("/student")
+      }
+    }
+  }, [session, status, router])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError("")
+    setLoading(true)
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError("Invalid email or password")
+        setLoading(false)
+      } else {
+        // We don't call getSession() here because it can be racey.
+        // Instead, we let the useEffect above handle the redirection
+        // once 'status' becomes 'authenticated'.
+        // We DON'T set loading to false here, to prevent the "nothing happened" feel.
+        // It will remain loading until the page navigates.
+      }
+    } catch (err) {
+      setError("Something went wrong. Please try again.")
+      setLoading(false)
+    }
+  }
+
   return (
-    <div style={{ minHeight: '100vh', overflowX: 'hidden' }}>
-      <nav style={{ padding: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <img src="/logo.png" alt="Logo" style={{ height: '50px' }} />
-          <div style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--primary)', lineHeight: 1.2 }}>
-            Govt. Graduate College<br />Peshawar Road, Rawalpindi
-          </div>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
+      {/* Left Side: Form */}
+      <div style={{ flex: 1, minWidth: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: '#ffffff' }}>
+        <div style={{ maxWidth: '400px', width: '100%' }}>
+          <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800, color: 'var(--primary)' }}>Welcome Back</h2>
+          <p style={{ opacity: 0.7, marginBottom: '2.5rem', fontSize: '1.1rem', color: 'var(--secondary)' }}>Sign in to access your dashboard</p>
+
+          {error && (
+            <div style={{ 
+              background: 'rgba(239, 68, 68, 0.1)', 
+              border: '1px solid #ef4444', 
+              color: '#ef4444', 
+              padding: '0.75rem', 
+              borderRadius: '0.5rem', 
+              marginBottom: '1.5rem',
+              fontSize: '0.875rem'
+            }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--secondary)' }}>Email Address</label>
+              <input 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@school.com"
+                required
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  borderRadius: '0.5rem',
+                  background: 'white',
+                  border: '1px solid var(--card-border)',
+                  color: 'black',
+                  outline: 'none',
+                  fontSize: '1rem'
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: 'var(--secondary)' }}>Password</label>
+              <input 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  borderRadius: '0.5rem',
+                  background: 'white',
+                  border: '1px solid var(--card-border)',
+                  color: 'black',
+                  outline: 'none',
+                  fontSize: '1rem'
+                }}
+              />
+            </div>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="btn btn-primary" 
+              style={{ width: '100%', marginTop: '1rem', padding: '1rem', opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer', fontSize: '1.1rem', fontWeight: 600 }}
+            >
+              {loading ? "Signing In..." : "Sign In"}
+            </button>
+          </form>
+
+          <p style={{ marginTop: '2rem', opacity: 0.6, fontSize: '0.875rem', textAlign: 'center', color: 'var(--secondary)' }}>
+            Don't have an account? <span style={{ color: 'var(--primary)', cursor: 'pointer', fontWeight: 600 }}>Contact Administrator</span>
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-          <Link href="/login" style={{ color: 'var(--secondary)', textDecoration: 'none', fontWeight: 600 }}>Login</Link>
-          <Link href="/login" className="btn btn-primary" style={{ textDecoration: 'none' }}>Get Started</Link>
+      </div>
+
+      {/* Right Side: School Info & Image as Background */}
+      <div style={{ 
+        flex: 1.2, 
+        minWidth: '400px', 
+        backgroundImage: 'linear-gradient(rgba(1, 65, 28, 0.8), rgba(6, 23, 39, 0.9)), url(/school-hero.png)', 
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        padding: '4rem', 
+        color: 'white', 
+        textAlign: 'center', 
+        position: 'relative', 
+        overflow: 'hidden' 
+      }}>
+        <div style={{ position: 'relative', zIndex: 2 }}>
+            <div style={{ background: 'white', padding: '1rem', borderRadius: '1rem', width: 'fit-content', margin: '0 auto 2rem' }}>
+              <img src="/logo.png" alt="Logo" style={{ height: '80px', display: 'block' }} />
+            </div>
+            <h1 style={{ fontSize: '3rem', fontWeight: 800, marginBottom: '1.5rem', lineHeight: 1.2, textShadow: '0 2px 4px rgba(0,0,0,0.3)' }}>
+              Govt. Graduate College<br />Peshawar Road, Rawalpindi
+            </h1>
+            <p style={{ fontSize: '1.4rem', opacity: 1, maxWidth: '600px', margin: '0 auto', fontWeight: 500, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+              Official Learning Management System. <br/> Empowering students through modern learning.
+            </p>
         </div>
-      </nav>
-
-      <section style={{ padding: '8rem 2rem', textAlign: 'center', maxWidth: '900px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '4.5rem', lineHeight: 1.1, marginBottom: '1.5rem', color: 'var(--secondary)' }} className="animate-fade-in">
-          Unlock Your <span style={{ color: 'var(--primary)' }}>Potential</span> with Modern Learning
-        </h1>
-        <p style={{ fontSize: '1.25rem', opacity: 0.8, marginBottom: '3rem', color: 'var(--secondary)' }} className="animate-fade-in">
-          The official Learning Management System for our students to collaborate, 
-          teach, and learn with state-of-the-art tools.
-        </p>
-        <div style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center' }} className="animate-fade-in">
-          <Link href="/login" className="btn btn-primary" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', textDecoration: 'none' }}>Start Teaching</Link>
-          <Link href="/login" style={{ padding: '1rem 2.5rem', fontSize: '1.1rem', color: 'var(--primary)', border: '1px solid var(--primary)', borderRadius: '0.5rem', textDecoration: 'none' }}>Join as Student</Link>
-        </div>
-      </section>
-
-
-      <section style={{ padding: '4rem 2rem', maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2.5rem' }}>
-        <div className="glass-card animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <div style={{ background: 'rgba(99, 102, 241, 0.1)', padding: '1rem', borderRadius: '1rem', width: 'fit-content', marginBottom: '1.5rem' }}>
-            <GraduationCap size={32} color="var(--primary)" />
-          </div>
-          <h3 style={{ marginBottom: '1rem' }}>Smart Curriculum</h3>
-          <p style={{ opacity: 0.7 }}>Advanced course management with modules, lessons, and interactive content.</p>
-        </div>
-
-        <div className="glass-card animate-fade-in" style={{ animationDelay: '0.3s' }}>
-          <div style={{ background: 'rgba(236, 72, 153, 0.1)', padding: '1rem', borderRadius: '1rem', width: 'fit-content', marginBottom: '1.5rem' }}>
-            <Rocket size={32} color="var(--secondary)" />
-          </div>
-          <h3 style={{ marginBottom: '1rem' }}>Rapid Progress</h3>
-          <p style={{ opacity: 0.7 }}>Track student growth with real-time analytics and achievement badges.</p>
-        </div>
-
-        <div className="glass-card animate-fade-in" style={{ animationDelay: '0.4s' }}>
-          <div style={{ background: 'rgba(139, 92, 246, 0.1)', padding: '1rem', borderRadius: '1rem', width: 'fit-content', marginBottom: '1.5rem' }}>
-            <ShieldCheck size={32} color="var(--accent)" />
-          </div>
-          <h3 style={{ marginBottom: '1rem' }}>Secure Roles</h3>
-          <p style={{ opacity: 0.7 }}>Dedicated environments for Admin, Teacher, and Student roles.</p>
-        </div>
-      </section>
-
-      <footer style={{ padding: '4rem 2rem', textAlign: 'center', opacity: 0.5, fontSize: '0.875rem', color: 'var(--secondary)' }}>
-        &copy; 2026 Govt. Graduate College, Peshawar Road, Rawalpindi. Built with Passion for Education.
-      </footer>
-
+        
+        {/* Background Decorative Elements */}
+        <div style={{ position: 'absolute', top: '-10%', right: '-10%', width: '400px', height: '400px', background: 'rgba(255, 204, 0, 0.1)', borderRadius: '50%', filter: 'blur(80px)' }}></div>
+      </div>
     </div>
   )
 }

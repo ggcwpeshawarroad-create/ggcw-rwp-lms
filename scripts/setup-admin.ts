@@ -5,6 +5,9 @@ import path from "path";
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+if (!process.env.DATABASE_URL) {
+  dotenv.config({ path: path.resolve(process.cwd(), "..", ".env") });
+}
 
 const DATABASE_URL = process.env.DATABASE_URL;
 

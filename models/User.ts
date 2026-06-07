@@ -24,10 +24,20 @@ const UserSchema = new mongoose.Schema(
       enum: ["ADMIN", "TEACHER", "STUDENT"],
       default: "STUDENT",
     },
+    registrationNumber: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    lastLogin: {
+      type: Date,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-export default mongoose.models.User || mongoose.model("User", UserSchema);
+// Force delete and re-register model to pick up schema changes in HMR
+delete mongoose.models.User
+export default mongoose.model("User", UserSchema)

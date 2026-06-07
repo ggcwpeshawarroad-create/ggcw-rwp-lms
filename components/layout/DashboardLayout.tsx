@@ -1,56 +1,156 @@
+"use client"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { signOut } from "next-auth/react"
+import { 
+  LayoutDashboard, 
+  Users, 
+  Settings, 
+  BookOpen, 
+  Search, 
+  LogOut,
+  GraduationCap,
+  UserPlus,
+  Activity
+} from "lucide-react"
 import styles from "./DashboardLayout.module.css"
 
 export default function DashboardLayout({ 
   children, 
   title, 
-  role 
+  role,
+  userName
 }: { 
   children: React.ReactNode, 
   title: string,
-  role: string 
+  role: "ADMIN" | "TEACHER" | "STUDENT",
+  userName?: string
 }) {
+  const pathname = usePathname()
+
+  const navItems = {
+    ADMIN: [
+      { name: "Overview", href: "/admin", icon: LayoutDashboard },
+      { name: "Users", href: "/admin/users", icon: Users },
+      { name: "Courses", href: "/admin/courses", icon: BookOpen },
+      { name: "Logs", href: "/admin/logs", icon: Activity },
+      { name: "Add User", href: "/admin/users/add", icon: UserPlus },
+      { name: "Settings", href: "/admin/settings", icon: Settings },
+    ],
+    TEACHER: [
+      { name: "Overview", href: "/teacher", icon: LayoutDashboard },
+      { name: "My Courses", href: "/teacher/courses", icon: BookOpen },
+      { name: "Students", href: "/teacher/students", icon: Users },
+    ],
+    STUDENT: [
+      { name: "Overview", href: "/student", icon: LayoutDashboard },
+      { name: "My Learning", href: "/student/courses", icon: BookOpen },
+      { name: "Browse Courses", href: "/student/browse", icon: Search },
+    ],
+  }
+
+  const currentNavItems = navItems[role] || []
+
+  const pathnameToTitle = (path: string) => {
+    const titles: Record<string, string> = {
+      "/admin": "Admin Overview",
+      "/admin/users": "User Management",
+      "/admin/courses": "Platform Courses",
+      "/admin/users/add": "Add New User",
+      "/admin/logs": "System Logs",
+      "/admin/settings": "System Settings",
+      "/teacher": "Teacher Dashboard",
+      "/teacher/courses": "Course Management",
+      "/teacher/students": "Student Roster",
+      "/student": "Student Dashboard",
+      "/student/courses": "My Learning",
+      "/student/browse": "Browse Catalog",
+    }
+    return titles[path] || title
+  }
+
   return (
     <div className={styles.container}>
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
-          <img src="/logo.png" alt="Logo" style={{ height: '40px', marginBottom: '0.5rem' }} />
-          <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--primary)', textAlign: 'center' }}>
+          <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+            <img src="/logo.png" alt="Logo" style={{ height: '40px', display: 'block' }} />
+          </div>
+          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary)', textAlign: 'center', lineHeight: 1.2 }}>
             Govt. Graduate College<br />Rawalpindi
           </div>
         </div>
 
         <nav className={styles.nav}>
-          <Link href={`/${role.toLowerCase()}`} className={styles.navItem}>Overview</Link>
-          {role === 'ADMIN' && (
-            <>
-              <Link href="/admin/users" className={styles.navItem}>Users</Link>
-              <Link href="/admin/settings" className={styles.navItem}>Settings</Link>
-            </>
-          )}
-          {role === 'TEACHER' && (
-            <>
-              <Link href="/teacher/courses" className={styles.navItem}>My Courses</Link>
-              <Link href="/teacher/students" className={styles.navItem}>Students</Link>
-            </>
-          )}
-          {role === 'STUDENT' && (
-            <>
-              <Link href="/student/courses" className={styles.navItem}>My Learning</Link>
-              <Link href="/student/browse" className={styles.navItem}>Browse Courses</Link>
-            </>
-          )}
+          {currentNavItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            return (
+              <Link 
+                key={item.href} 
+                href={item.href} 
+                className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
+              >
+                <Icon size={20} />
+                <span>{item.name}</span>
+              </Link>
+            )
+          })}
         </nav>
+
+        <div className={styles.sidebarFooter}>
+          <button 
+            onClick={() => signOut({ callbackUrl: "/" })} 
+            className={styles.logoutButton}
+          >
+            <LogOut size={20} />
+            <span>Logout</span>
+          </button>
+        </div>
       </aside>
+
       <main className={styles.main}>
         <header className={styles.header}>
-          <h1>{title}</h1>
+          <h1>{pathnameToTitle(pathname)}</h1>
           <div className={styles.userProfile}>
-            <span>{role}</span>
+            <div style={{ marginRight: '1rem', textAlign: 'right' }}>
+              <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Welcome,</div>
+              <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{userName || role}</div>
+            </div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+              {(userName || role)[0]}
+            </div>
           </div>
         </header>
         <section className={styles.content}>
-          {children}
+          <div className="animate-fade-in">
+            {['/admin', '/teacher', '/student'].includes(pathname) && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '1.5rem', 
+                marginBottom: '2.5rem', 
+                padding: '1.5rem', 
+                background: 'white', 
+                borderRadius: '1.25rem', 
+                border: '1px solid var(--glass-border)',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)'
+              }}>
+                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                  <img src="/logo.png" alt="Logo" style={{ height: '60px', display: 'block' }} />
+                </div>
+                <div>
+                  <h2 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
+                    Govt. Graduate College
+                  </h2>
+                  <p style={{ color: 'var(--primary)', margin: 0, fontSize: '1.25rem', fontWeight: 600, opacity: 0.8 }}>
+                    Rawalpindi
+                  </p>
+                </div>
+              </div>
+            )}
+            {children}
+          </div>
         </section>
       </main>
     </div>

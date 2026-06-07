@@ -1,0 +1,81 @@
+import { NextResponse } from "next/server"
+import connectDB from "@/lib/db"
+import Lesson, { ILesson } from "@/models/Lesson"
+import Course from "@/models/Course"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const { id } = await params
+    const { searchParams } = new URL(req.url)
+    const chapterId = searchParams.get("chapterId")
+
+    const session = await getServerSession(authOptions)
+    await connectDB()
+    let query: any = { courseId: id }
+    if (chapterId) query.chapterId = chapterId
+
+    let lessons = (await Lesson.find(query).sort({ order: 1 }).lean()) as ILesson[]
+
+    // If student, filter by date and strip correct answers
+    if (session?.user?.role === "STUDENT") {
+      const now = new Date()
+      lessons = lessons.filter(l => !l.startDate || now >= new Date(l.startDate))
+      
+      lessons = lessons.map(lesson => {
+        if (lesson.type === "QUIZ" && lesson.quizData) {
+          lesson.quizData = lesson.quizData.map((q: any) => {
+            const { correctAnswer, ...rest } = q
+            return rest
+          })
+        }
+        return lesson
+      })
+    }
+
+    return NextResponse.json(lessons)
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch lessons" }, { status: 500 })
+  }
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session || (session.user.role !== "TEACHER" && session.user.role !== "ADMIN")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await params
+    const body = await req.json()
+
+    await connectDB()
+    
+    // Verify ownership
+    const course = await Course.findById(id)
+    if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
+    if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
+       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const lastLesson = await Lesson.findOne({ chapterId: body.chapterId }).sort({ order: -1 })
+    const order = lastLesson ? lastLesson.order + 1 : 1
+
+    const lesson = await Lesson.create({ 
+        ...body, 
+        courseId: id, 
+        order 
+    })
+    return NextResponse.json(lesson)
+  } catch (error) {
+    console.error("Lesson creation error:", error)
+    return NextResponse.json({ error: "Failed to create lesson" }, { status: 500 })
+  }
+}

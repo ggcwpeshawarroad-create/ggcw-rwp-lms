@@ -63,8 +63,33 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
+  events: {
+    async signIn({ user }: { user: any }) {
+      try {
+        await connectDB()
+        
+        const lastLogin = new Date()
+        const updatedUser = await User.findByIdAndUpdate(
+          user.id, 
+          { lastLogin },
+          { new: true }
+        )
+        
+        console.log(`[AUTH] Updated lastLogin for ${user.email} at ${lastLogin}`)
+        
+        const Log = (await import("@/models/Log")).default
+        await Log.create({
+          userId: user.id,
+          action: "LOGIN",
+          details: `User logged in from ${user.email}`
+        })
+      } catch (error) {
+        console.error("[AUTH] Error in signIn event:", error)
+      }
+    }
+  },
   pages: {
-    signIn: "/login",
+    signIn: "/",
   },
   secret: process.env.NEXTAUTH_SECRET,
 }
