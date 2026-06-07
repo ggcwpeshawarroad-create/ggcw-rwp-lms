@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/auth"
 
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string; lessonId: string } }
+  { params }: { params: Promise<{ id: string; lessonId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -31,7 +31,7 @@ export async function DELETE(
   }
 }
 
-export async function GET(req: Request, { params }: { params: { id: string; lessonId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string; lessonId: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -69,7 +69,7 @@ export async function GET(req: Request, { params }: { params: { id: string; less
   }
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string; lessonId: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string; lessonId: string }> }) {
   try {
     const session = await getServerSession(authOptions)
     if (!session || (session.user.role !== "TEACHER" && session.user.role !== "ADMIN")) {
