@@ -52,7 +52,7 @@ export async function POST(
     // Handle Quiz Logic
     if (lesson.type === "QUIZ" && answers) {
       let score = 0
-      const submissionAnswers = lesson.quizData.map((q: any, idx: number) => {
+      const submissionAnswers = (lesson.quizData ?? []).map((q: any, idx: number) => {
         const userAnswer = answers.find((a: any) => a.questionIndex === idx)
         const isCorrect = userAnswer?.answerIndex === q.correctAnswer
         if (isCorrect) score++
@@ -63,7 +63,7 @@ export async function POST(
         }
       })
       submissionData.score = score
-      submissionData.totalQuestions = lesson.quizData.length
+      submissionData.totalQuestions = (lesson.quizData ?? []).length
       submissionData.answers = submissionAnswers
     } 
     // Handle Assignment Logic
