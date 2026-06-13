@@ -46,8 +46,8 @@ export default function StudentCoursesPage() {
                 <div style={{ position: 'relative', height: '140px', background: 'var(--primary)10', borderRadius: '0.75rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <BookOpen size={40} color="var(--primary)" />
                 </div>
-                <h3 style={{ fontWeight: 700, marginBottom: '0.5rem' }}>{course.title}</h3>
-                <p style={{ fontSize: '0.875rem', opacity: 0.6, marginBottom: '1.5rem' }}>{course.description}</p>
+                <h3 style={{ fontWeight: 700, marginBottom: '0.5rem' }} className="capitalize">{course.title}</h3>
+                <p style={{ fontSize: '0.875rem', opacity: 0.6, marginBottom: '1.5rem' }} className="capitalize">{course.description}</p>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--glass-border)', paddingTop: '1rem' }}>
                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary)' }}>
                       <PlayCircle size={16} /> Continue Learning

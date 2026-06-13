@@ -32,6 +32,15 @@ const UserSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
     },
+    classLevel: {
+      type: String,
+    },
+    program: {
+      type: String,
+    },
+    semester: {
+      type: String,
+    },
   },
   {
     timestamps: true,

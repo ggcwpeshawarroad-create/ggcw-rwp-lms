@@ -24,6 +24,19 @@ body {
   min-height: 100vh;
 }
 
+h1, h2, h3, h4, h5, h6, 
+label, 
+button, 
+th,
+.capitalize {
+  text-transform: capitalize;
+}
+
+input::placeholder,
+textarea::placeholder {
+  text-transform: capitalize;
+}
+
 
 .glass-card {
   background: var(--card);
@@ -70,4 +83,8 @@ body {
 
 .animate-fade-in {
   animation: fadeIn 0.5s ease forwards;
+}
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

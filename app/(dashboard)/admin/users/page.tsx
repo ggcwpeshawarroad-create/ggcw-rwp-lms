@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, Loader2, Search, ChevronLeft, ChevronRight, X, PlusCircle, BookOpen, Trash2, CheckCircle, Lock } from "lucide-react"
+import { Users, Loader2, Search, ChevronLeft, ChevronRight, X, PlusCircle, BookOpen, Trash2, CheckCircle, Lock, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { SearchableSelect } from "@/components/ui/SearchableSelect"
+import { formatText } from "@/lib/utils"
 
 export default function UsersPage() {
   const [users, setUsers] = useState([])
@@ -25,6 +26,7 @@ export default function UsersPage() {
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
   const [showResetModal, setShowResetModal] = useState(false)
   const [resetting, setResetting] = useState(false)
+  const [showResetPassword, setShowResetPassword] = useState(false)
   const [newPassword, setNewPassword] = useState("")
 
   useEffect(() => {
@@ -194,6 +196,7 @@ export default function UsersPage() {
                     <th style={{ padding: '1rem 1.5rem' }}>S.No</th>
                     <th style={{ padding: '1rem 1.5rem' }}>User Info</th>
                     <th style={{ padding: '1rem 1.5rem' }}>Reg No.</th>
+                    <th style={{ padding: '1rem 1.5rem' }}>Class/Program</th>
                     <th style={{ padding: '1rem 1.5rem' }}>Email Address</th>
                     <th style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>Role</th>
                     <th style={{ padding: '1rem 1.5rem' }}>Last Login</th>
@@ -207,7 +210,7 @@ export default function UsersPage() {
                         {(page - 1) * limit + index + 1}
                       </td>
                       <td style={{ padding: '1rem 1.5rem' }}>
-                        <div style={{ fontWeight: 600 }}>{user.name || "Anonymous User"}</div>
+                        <div style={{ fontWeight: 600 }}>{formatText(user.name || "Anonymous User")}</div>
                         <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>ID: {user._id.slice(-6)}</div>
                       </td>
                       <td style={{ padding: '1rem 1.5rem' }}>
@@ -219,17 +222,31 @@ export default function UsersPage() {
                           <span style={{ opacity: 0.3, fontStyle: 'italic', fontSize: '0.85rem' }}>N/A</span>
                         )}
                       </td>
+                      <td style={{ padding: '1rem 1.5rem' }}>
+                        {user.classLevel ? (
+                          <div style={{ fontSize: '0.85rem' }} className="capitalize">
+                            <div style={{ fontWeight: 600 }}>{user.classLevel}</div>
+                            {user.program && <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{user.program}</div>}
+                            {user.semester && <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600, marginTop: '0.1rem' }}>{user.semester}</div>}
+                          </div>
+                        ) : (
+                          <span style={{ opacity: 0.3, fontStyle: 'italic', fontSize: '0.85rem' }}>N/A</span>
+                        )}
+                      </td>
                       <td style={{ padding: '1rem 1.5rem', opacity: 0.8 }}>{user.email}</td>
                       <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
-                        <span style={{ 
-                          padding: '0.35rem 1rem', 
-                          borderRadius: '1rem', 
-                          fontSize: '0.75rem',
-                          fontWeight: 700,
-                          background: user.role === "ADMIN" ? 'rgba(239, 68, 68, 0.1)' : user.role === "TEACHER" ? 'rgba(99, 102, 241, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                          color: user.role === "ADMIN" ? '#ef4444' : user.role === "TEACHER" ? '#6366f1' : '#10b981',
-                        }}>
-                          {user.role}
+                        <span 
+                          className="capitalize"
+                          style={{ 
+                            padding: '0.35rem 1rem', 
+                            borderRadius: '1rem', 
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            background: user.role === "ADMIN" ? 'rgba(239, 68, 68, 0.1)' : user.role === "TEACHER" ? 'rgba(99, 102, 241, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                            color: user.role === "ADMIN" ? '#ef4444' : user.role === "TEACHER" ? '#6366f1' : '#10b981',
+                          }}
+                        >
+                          {formatText(user.role)}
                         </span>
                       </td>
                       <td style={{ padding: '1rem 1.5rem', opacity: 0.8, fontSize: '0.875rem' }}>
@@ -389,14 +406,35 @@ export default function UsersPage() {
             <form onSubmit={handleResetPassword} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>New Password</label>
-                <input 
-                  type="text" 
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new secure password"
-                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input 
+                    type={showResetPassword ? "text" : "password"}
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new secure password"
+                    style={{ width: '100%', padding: '0.75rem', paddingRight: '2.5rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '0.75rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--primary)',
+                      cursor: 'pointer',
+                      opacity: 0.5,
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {showResetPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <button type="button" onClick={() => setShowResetModal(false)} className="btn" style={{ flex: 1, background: '#f1f5f9' }}>Cancel</button>

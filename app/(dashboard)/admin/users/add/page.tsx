@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { UserPlus, Loader2, ArrowLeft } from "lucide-react"
+import { UserPlus, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -9,6 +9,7 @@ export default function AddUserPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
 
   const [formData, setFormData] = useState({
@@ -17,7 +18,25 @@ export default function AddUserPage() {
     registrationNumber: "",
     password: "",
     role: "STUDENT",
+    classLevel: "",
+    program: "",
+    semester: "",
   })
+
+  const classOptions = ["BS", "2nd Year", "1st Year", "10th", "9th", "8th", "7th", "6th", "5th", "4th", "3rd", "2nd", "1st"]
+  
+  const getProgramOptions = (classLevel: string) => {
+    if (classLevel === "9th" || classLevel === "10th") {
+      return ["Science", "Arts"]
+    }
+    if (classLevel === "1st Year" || classLevel === "2nd Year") {
+      return ["Pre-Engineering", "Pre-Medical", "Arts", "ICS", "I.Com"]
+    }
+    if (classLevel === "BS") {
+      return ["BS Computer Science", "BS Islamic Studies", "BS English", "BS Physics", "BS Chemistry", "BS Mathematics", "BS Zoology", "BS Botany", "BS Psychology", "BS Economics", "BS Sociology", "BS Political Science"]
+    }
+    return [] // Others
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,7 +55,7 @@ export default function AddUserPage() {
 
       if (res.ok) {
         setSuccess("User created successfully!")
-        setFormData({ name: "", email: "", registrationNumber: "", password: "", role: "STUDENT" })
+        setFormData({ name: "", email: "", registrationNumber: "", password: "", role: "STUDENT", classLevel: "", program: "", semester: "" })
         setTimeout(() => {
           router.push("/admin/users")
         }, 2000)
@@ -107,29 +126,114 @@ export default function AddUserPage() {
             </div>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Password</label>
-              <input 
-                type="text" 
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                placeholder="•••••••••••••"
-                style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
-              />
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  placeholder="•••••••••••••"
+                  style={{ width: '100%', padding: '0.875rem', paddingRight: '3rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '1rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    opacity: 0.6,
+                    padding: '0.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Role</label>
-            <select 
-              value={formData.role}
-              onChange={(e) => setFormData({...formData, role: e.target.value})}
-              style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
-            >
-              <option value="STUDENT">Student</option>
-              <option value="TEACHER">Teacher</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-          </div>
+            <div style={{ display: 'grid', gridTemplateColumns: formData.role === 'STUDENT' ? (formData.classLevel === 'BS' ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr') : '1fr', gap: '1.5rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Role</label>
+                <select 
+                  value={formData.role}
+                  onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
+                >
+                  <option value="STUDENT">Student</option>
+                  <option value="TEACHER">Teacher</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+
+              {formData.role === "STUDENT" && (
+                <>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Class Name</label>
+                    <select 
+                      required
+                      value={formData.classLevel}
+                      onChange={(e) => setFormData({...formData, classLevel: e.target.value, program: "", semester: ""})}
+                      style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
+                    >
+                      <option value="">Select Class</option>
+                      {classOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Program / Stream</label>
+                    {formData.classLevel && ["9th", "10th", "1st Year", "2nd Year", "BS"].includes(formData.classLevel) ? (
+                      <select 
+                        required
+                        value={formData.program}
+                        onChange={(e) => setFormData({...formData, program: e.target.value})}
+                        style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
+                      >
+                        <option value="">Select Program</option>
+                        {getProgramOptions(formData.classLevel).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    ) : (
+                      <input 
+                        type="text"
+                        placeholder={formData.classLevel ? "e.g. Science, Arts or custom tags" : "Select class first"}
+                        disabled={!formData.classLevel}
+                        value={formData.program}
+                        onChange={(e) => setFormData({...formData, program: e.target.value})}
+                        style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: formData.classLevel ? 'white' : '#f1f5f9', border: '1px solid var(--glass-border)', outline: 'none' }}
+                      />
+                    )}
+                  </div>
+
+                  {formData.classLevel === "BS" && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Semester</label>
+                      <select 
+                        required
+                        value={formData.semester}
+                        onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                        style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
+                      >
+                        <option value="">Select Semester</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
+                          <option key={s} value={`${s}${s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester`}>
+                            {s}{s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           
           <button className="btn btn-primary" disabled={submitting} style={{ padding: '1rem', marginTop: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
             {submitting ? <Loader2 className="animate-spin" /> : <>Create User</>}

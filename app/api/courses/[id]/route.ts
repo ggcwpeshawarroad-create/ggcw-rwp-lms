@@ -48,16 +48,23 @@ export async function PATCH(
 
     const updatedCourse = await Course.findByIdAndUpdate(
       id,
-      { $set: updates },
+      { 
+        $set: {
+          ...updates,
+          classLevel: updates.classLevel ?? course.classLevel ?? "",
+          program: updates.program ?? course.program ?? "",
+          semester: updates.semester ?? course.semester ?? ""
+        } 
+      },
       { new: true }
     )
-
+ 
     // Log the update
     const Log = (await import("@/models/Log")).default
     await Log.create({
       userId: session.user.id,
       action: "COURSE_UPDATED",
-      details: `Updated course: ${course.title}. Changes: ${Object.keys(updates).join(", ")}`
+      details: `Updated course: ${course.title}. New values: ${JSON.stringify(updates)}`
     })
 
     return NextResponse.json({

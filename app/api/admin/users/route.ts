@@ -17,13 +17,15 @@ export async function GET(req: Request) {
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "50")
     const search = searchParams.get("search") || ""
-
+    const role = searchParams.get("role")
+ 
     const skip = (page - 1) * limit
-
+ 
     await connectDB()
-
+ 
     // Base query
     let query: any = {}
+    if (role) query.role = role
 
     // Searching
     if (search) {
@@ -65,36 +67,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { name, email, registrationNumber, password, role } = await req.json()
-
+    const { name, email, registrationNumber, password, role, classLevel, program, semester } = await req.json()
+ 
     if (!email || !password || !role || !registrationNumber) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
-
+ 
     await connectDB()
-
+ 
     // Check email uniqueness
     const existingEmail = await User.findOne({ email })
     if (existingEmail) {
       return NextResponse.json({ error: "Email already exists" }, { status: 400 })
     }
-
+ 
     // Check registration number uniqueness
     const existingReg = await User.findOne({ registrationNumber })
     if (existingReg) {
       return NextResponse.json({ error: "Registration number already exists" }, { status: 400 })
     }
-
+ 
     const hashedPassword = await bcrypt.hash(password, 10)
-
+ 
     const user = await User.create({
       name,
       email,
       registrationNumber,
       password: hashedPassword,
       role,
+      classLevel,
+      program,
+      semester,
     })
-
+ 
     return NextResponse.json({
       message: "User created successfully",
       user: {
@@ -103,6 +108,9 @@ export async function POST(req: Request) {
         email: user.email,
         registrationNumber: user.registrationNumber,
         role: user.role,
+        classLevel: user.classLevel,
+        program: user.program,
+        semester: user.semester,
       },
     })
   } catch (error) {

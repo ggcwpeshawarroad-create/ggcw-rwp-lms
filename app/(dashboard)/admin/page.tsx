@@ -7,7 +7,8 @@ import Lesson from "@/models/Lesson"
 import StatCard from "@/components/admin/StatCard"
 import DashboardCharts from "@/components/admin/DashboardCharts"
 import ActivityFeed from "@/components/admin/ActivityFeed"
-import { Users, GraduationCap, BookOpen, FileText, Plus, Settings } from "lucide-react"
+import { Settings } from "lucide-react"
+import { formatText } from "@/lib/utils"
 
 export default async function AdminPage() {
   await connectDB()
@@ -92,27 +93,39 @@ export default async function AdminPage() {
       id: e._id.toString(),
       type: 'ENROLLMENT',
       title: `New Enrollment`,
-      subtitle: `${e.userId?.name || 'User'} enrolled in a course`,
+      subtitle: `${formatText(e.userId?.name || 'User')} enrolled in a course`,
       time: new Date(e.createdAt).toLocaleDateString()
     })),
     ...recentUsers.map((u: any) => ({
       id: u._id.toString(),
       type: 'USER',
       title: 'New Account',
-      subtitle: `${u.name || u.email} joined the system`,
+      subtitle: `${formatText(u.name || (u.email ? u.email.split('@')[0] : 'User'))} joined the system`,
       time: new Date(u.createdAt).toLocaleDateString()
     }))
   ].sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: '0.5rem', borderBottom: '1px solid #f1f5f9' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--primary)' }}>Admin Dashboard</h1>
-          <p style={{ opacity: 0.6 }}>Manage your LMS system and track performance.</p>
+          <h1 style={{ fontSize: '2.25rem', fontWeight: 900, color: '#1e293b', margin: 0, letterSpacing: '-0.02em' }}>Analytics Overview</h1>
+          <p style={{ fontSize: '1.1rem', color: '#64748b', fontWeight: 500, marginTop: '0.25rem' }}>Real-time platform metrics and system health.</p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          <Link href="/admin/settings" className="btn" style={{ border: '1px solid var(--glass-border)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Link href="/admin/settings" className="btn" style={{ 
+            background: 'white', 
+            border: '1px solid #e2e8f0', 
+            textDecoration: 'none', 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.5rem',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '0.75rem',
+            fontWeight: 700,
+            fontSize: '0.9375rem',
+            color: '#475569'
+          }}>
             <Settings size={18} /> Settings
           </Link>
         </div>
@@ -122,26 +135,26 @@ export default async function AdminPage() {
         <StatCard 
           title="Total Students" 
           value={studentCount} 
-          icon={GraduationCap} 
+          icon="GraduationCap" 
           description="Enrolled in courses" 
           trend={{ value: 12, isPositive: true }}
         />
         <StatCard 
           title="Total Teachers" 
           value={teacherCount} 
-          icon={Users} 
+          icon="Users" 
           description="Managing content" 
         />
         <StatCard 
           title="Active Courses" 
           value={courseCount} 
-          icon={BookOpen} 
+          icon="BookOpen" 
           description="Published & Draft" 
         />
         <StatCard 
           title="Total Lessons" 
           value={lessonCount} 
-          icon={FileText} 
+          icon="FileText" 
           description="Across all courses" 
         />
       </div>
@@ -153,21 +166,22 @@ export default async function AdminPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <ActivityFeed activities={activities} />
           
-          <div className="glass-card" style={{ padding: '1.5rem', boxShadow: 'none', border: '1px solid var(--glass-border)', background: 'var(--card)' }}>
-            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 700, color: 'var(--primary)' }}>System Status</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span style={{ opacity: 0.6 }}>Database</span>
-                <span style={{ color: '#10b981', fontWeight: 600 }}>Connected</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span style={{ opacity: 0.6 }}>Storage</span>
-                <span style={{ color: '#10b981', fontWeight: 600 }}>Active</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                <span style={{ opacity: 0.6 }}>Auth Service</span>
-                <span style={{ color: '#10b981', fontWeight: 600 }}>Healthy</span>
-              </div>
+          <div className="glass-card" style={{ padding: '1.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02)', border: '1px solid rgba(0,0,0,0.05)', background: 'white', borderRadius: '1.25rem' }}>
+            <h3 style={{ marginBottom: '1.25rem', fontSize: '1rem', fontWeight: 800, color: '#1e293b' }}>System Infrastructure</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {[
+                { label: "Database Engine", status: "Healthy", color: "#10b981" },
+                { label: "Cloud Storage", status: "Active", color: "#10b981" },
+                { label: "Authentication", status: "Online", color: "#10b981" }
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#64748b' }}>{item.label}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: item.color }}></div>
+                    <span style={{ color: item.color, fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{item.status}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>

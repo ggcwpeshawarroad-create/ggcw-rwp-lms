@@ -21,13 +21,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Enrollment not found" }, { status: 404 })
     }
 
-    // Permission Logic
-    const isOwner = enrollment.userId.toString() === session.user.id
+    // Only the course's teacher or an Admin can remove an enrollment
     const isTeacher = session.user.role === "TEACHER" && enrollment.courseId.teacherId.toString() === session.user.id
     const isAdmin = session.user.role === "ADMIN"
 
-    if (!isOwner && !isTeacher && !isAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (!isTeacher && !isAdmin) {
+      return NextResponse.json({ error: "Only admins and teachers can remove enrollments" }, { status: 403 })
     }
 
     await Enrollment.findByIdAndDelete(id)

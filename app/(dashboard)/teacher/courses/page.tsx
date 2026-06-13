@@ -1,18 +1,36 @@
 "use client"
 import { useState, useEffect } from "react"
-import { BookOpen, PlusCircle, Loader2, PlayCircle, Edit2 } from "lucide-react"
+import { BookOpen, Loader2, PlayCircle, Edit2, X } from "lucide-react"
 import Link from "next/link"
 
 export default function TeacherCoursesPage() {
   const [courses, setCourses] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     thumbnail: "",
+    classLevel: "",
+    program: "",
+    semester: "",
   })
+
+  const classOptions = ["BS", "2nd Year", "1st Year", "10th", "9th", "8th", "7th", "6th", "5th", "4th", "3rd", "2nd", "1st"]
+
+  const getProgramOptions = (classLevel: string) => {
+    if (classLevel === "9th" || classLevel === "10th") {
+      return ["Science", "Arts"]
+    }
+    if (classLevel === "1st Year" || classLevel === "2nd Year") {
+      return ["Pre-Engineering", "Pre-Medical", "Arts", "ICS", "I.Com"]
+    }
+    if (classLevel === "BS") {
+      return ["BS Computer Science", "BS Islamic Studies", "BS English", "BS Physics", "BS Chemistry", "BS Mathematics", "BS Zoology", "BS Botany", "BS Psychology", "BS Economics", "BS Sociology", "BS Political Science"]
+    }
+    return []
+  }
 
   const [editingCourse, setEditingCourse] = useState<any>(null)
 
@@ -37,20 +55,18 @@ export default function TeacherCoursesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!editingCourse) return
     setSubmitting(true)
     try {
-      const url = editingCourse ? `/api/courses/${editingCourse._id}` : "/api/courses"
-      const method = editingCourse ? "PATCH" : "POST"
-      
-      const res = await fetch(url, {
-        method,
+      const res = await fetch(`/api/courses/${editingCourse._id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       })
       
       if (res.ok) {
-        setFormData({ title: "", description: "", thumbnail: "" })
-        setShowAddForm(false)
+        setFormData({ title: "", description: "", thumbnail: "", classLevel: "", program: "", semester: "" })
+        setShowEditModal(false)
         setEditingCourse(null)
         fetchCourses()
       }
@@ -80,8 +96,11 @@ export default function TeacherCoursesPage() {
       title: course.title,
       description: course.description || "",
       thumbnail: course.thumbnail || "",
+      classLevel: course.classLevel || "",
+      program: course.program || "",
+      semester: course.semester || "",
     })
-    setShowAddForm(true)
+    setShowEditModal(true)
   }
 
   return (
@@ -91,71 +110,25 @@ export default function TeacherCoursesPage() {
           <div style={{ background: 'var(--primary)', padding: '0.75rem', borderRadius: '1rem', color: 'white' }}>
             <BookOpen size={24} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Course Management</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Assigned Courses</h2>
         </div>
-        <button 
-          onClick={() => {
-            setShowAddForm(!showAddForm)
-            if (showAddForm) {
-              setEditingCourse(null)
-              setFormData({ title: "", description: "", thumbnail: "" })
-            }
-          }}
-          className="btn btn-primary" 
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-        >
-          {showAddForm ? "Cancel & View List" : <><PlusCircle size={18} /> Create New Course</>}
-        </button>
       </div>
 
-      {showAddForm ? (
-        <div className="glass-card animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h3 style={{ color: 'var(--primary)', marginBottom: '1.5rem', fontWeight: 700 }}>
-            {editingCourse ? "Edit Course" : "Create New Course"}
-          </h3>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Course Title</label>
-              <input 
-                type="text" 
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
-                placeholder="e.g. Introduction to Physics"
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Description</label>
-              <textarea 
-                rows={4}
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                placeholder="Briefly describe what this course covers..."
-                style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none', resize: 'vertical' }}
-              />
-            </div>
-            <button className="btn btn-primary" disabled={submitting} style={{ padding: '1rem', marginTop: '0.5rem' }}>
-              {submitting ? <Loader2 className="animate-spin" /> : editingCourse ? "Update Course" : "Create Course"}
-            </button>
-          </form>
-        </div>
-      ) : (
-        <div className="glass-card">
+      <div className="glass-card">
           {loading && courses.length === 0 ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><Loader2 className="animate-spin" size={48} color="var(--primary)" /></div>
           ) : courses.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1.5rem', border: '1px dashed var(--glass-border)' }}>
-              <p style={{ opacity: 0.6, marginBottom: '1.5rem' }}>You haven't created any courses yet.</p>
-              <button className="btn btn-primary" onClick={() => setShowAddForm(true)}>Get Started</button>
+              <p style={{ opacity: 0.6 }}>You are not assigned to any courses yet.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0.5rem', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>
-                    <th style={{ padding: '1rem 1.5rem' }}>S.No</th>
+                     <th style={{ padding: '1rem 1.5rem' }}>S.No</th>
                     <th style={{ padding: '1rem 1.5rem' }}>Course Title</th>
+                    <th style={{ padding: '1rem 1.5rem' }}>Class</th>
                     <th style={{ padding: '1rem 1.5rem' }}>Status</th>
                     <th style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>Actions</th>
                   </tr>
@@ -165,7 +138,24 @@ export default function TeacherCoursesPage() {
                     <tr key={course._id} style={{ background: 'rgba(255,255,255,0.02)', transition: 'background 0.2s' }}>
                       <td style={{ padding: '1rem 1.5rem', fontWeight: 600, color: '#94a3b8' }}>{index + 1}</td>
                       <td style={{ padding: '1rem 1.5rem' }}>
-                        <div style={{ fontWeight: 600 }}>{course.title}</div>
+                        <div style={{ fontWeight: 600 }} className="capitalize">{course.title}</div>
+                      </td>
+                      <td style={{ padding: '1rem 1.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column' }} className="capitalize">
+                          <span style={{ fontWeight: 600, color: 'var(--primary)', background: 'var(--primary)10', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', alignSelf: 'flex-start' }}>
+                            {course.classLevel || "N/A"}
+                          </span>
+                          {course.program && (
+                            <span style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: '0.25rem', paddingLeft: '0.25rem' }}>
+                              {course.program}
+                            </span>
+                          )}
+                          {course.semester && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, marginTop: '0.1rem', paddingLeft: '0.25rem' }}>
+                              {course.semester}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ padding: '1rem 1.5rem' }}>
                         <span style={{ 
@@ -216,6 +206,100 @@ export default function TeacherCoursesPage() {
               </table>
             </div>
           )}
+        </div>
+ 
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div className="glass-card animate-scale-in" style={{ maxWidth: '500px', width: '100%', background: 'white' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}>Edit Course Info</h3>
+              <button 
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingCourse(null)
+                }} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Course Title</label>
+                <input 
+                  type="text" 
+                  required
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Class Level</label>
+                <select 
+                  value={formData.classLevel}
+                  onChange={(e) => setFormData({...formData, classLevel: e.target.value, program: "", semester: ""})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                >
+                  <option value="">Select Class</option>
+                  {classOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Program / Stream</label>
+                {formData.classLevel && ["9th", "10th", "1st Year", "2nd Year", "BS"].includes(formData.classLevel) ? (
+                  <select 
+                    value={formData.program}
+                    onChange={(e) => setFormData({...formData, program: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  >
+                    <option value="">Select Program</option>
+                    {getProgramOptions(formData.classLevel).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                ) : (
+                  <input 
+                    type="text"
+                    placeholder={formData.classLevel ? "e.g. Science, Arts or custom tags" : "Select class first"}
+                    disabled={!formData.classLevel}
+                    value={formData.program}
+                    onChange={(e) => setFormData({...formData, program: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: formData.classLevel ? '#f8fafc' : '#f1f5f9', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  />
+                )}
+              </div>
+              {formData.classLevel === "BS" && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Semester</label>
+                  <select 
+                    required
+                    value={formData.semester}
+                    onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  >
+                    <option value="">Select Semester</option>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
+                      <option key={s} value={`${s}${s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester`}>
+                        {s}{s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Description</label>
+                <textarea 
+                  rows={4}
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                />
+              </div>
+              <button className="btn btn-primary" disabled={submitting} style={{ padding: '0.75rem', marginTop: '0.5rem' }}>
+                {submitting ? <Loader2 className="animate-spin" /> : "Save Changes"}
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

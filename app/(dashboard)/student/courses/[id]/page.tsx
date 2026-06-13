@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
+import Link from "next/link"
 import { 
   Play, 
   ChevronRight, 
@@ -16,7 +17,8 @@ import {
   Menu,
   X,
   AlertCircle,
-  Upload
+  Upload,
+  ShieldOff
 } from "lucide-react"
 
 export default function CoursePlayerPage() {
@@ -26,6 +28,7 @@ export default function CoursePlayerPage() {
   const [chapters, setChapters] = useState<any[]>([])
   const [selectedLesson, setSelectedLesson] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
 
   // Quiz States
@@ -142,24 +145,29 @@ export default function CoursePlayerPage() {
 
   const fetchCourseData = async () => {
     try {
-      const [cRes, chRes] = await Promise.all([
+      const [cRes, chRes, eRes] = await Promise.all([
         fetch(`/api/courses/${id}`),
-        fetch(`/api/courses/${id}/chapters`)
+        fetch(`/api/courses/${id}/chapters`),
+        fetch(`/api/enrollments?courseId=${id}`)
       ])
-      
+
       const cData = await cRes.json()
       const chData = await chRes.json()
-      
+      const eData = await eRes.json()
+
       if (cRes.ok) setCourse(cData)
-      if (chRes.ok) {
+
+      // Enrollment guard: check if student is in any enrollment for this course
+      const enrolled = eRes.ok && Array.isArray(eData) && eData.length > 0
+      setIsEnrolled(enrolled)
+
+      if (enrolled && chRes.ok) {
           const chaptersWithLessons = await Promise.all(chData.map(async (ch: any) => {
               const lRes = await fetch(`/api/courses/${id}/lessons?chapterId=${ch._id}`)
               const lData = await lRes.json()
               return { ...ch, lessons: lRes.ok ? lData : [] }
           }))
           setChapters(chaptersWithLessons)
-          
-          // Select first lesson by default
           if (chaptersWithLessons.length > 0 && chaptersWithLessons[0].lessons.length > 0) {
               setSelectedLesson(chaptersWithLessons[0].lessons[0])
           }
@@ -172,6 +180,21 @@ export default function CoursePlayerPage() {
   }
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '10rem' }}><Loader2 className="animate-spin" size={48} color="#4f46e5" /></div>
+
+  if (!isEnrolled) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: '2rem' }}>
+      <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+        <ShieldOff size={36} color="#ef4444" />
+      </div>
+      <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.75rem' }}>Access Restricted</h2>
+      <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '400px', lineHeight: '1.65', marginBottom: '2rem' }}>
+        You need to enroll in this course before accessing its content.
+      </p>
+      <Link href="/student/browse" className="btn btn-primary" style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 2rem' }}>
+        Browse Courses
+      </Link>
+    </div>
+  )
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 80px)', margin: '-2rem', overflow: 'hidden' }}>

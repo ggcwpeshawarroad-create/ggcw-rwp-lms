@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { BookOpen, Loader2, Calendar, User, Search, PlayCircle, Trash2, Edit2, Info, X } from "lucide-react"
+import { BookOpen, Loader2, Calendar, User, Search, PlayCircle, Trash2, Edit2, Info, X, PlusCircle } from "lucide-react"
 
 export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<any[]>([])
@@ -9,16 +9,50 @@ export default function AdminCoursesPage() {
   const [search, setSearch] = useState("")
   const [editingCourse, setEditingCourse] = useState<any>(null)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [teachers, setTeachers] = useState<any[]>([])
 
   const [formData, setFormData] = useState({
     title: "",
     description: "",
+    classLevel: "",
+    program: "",
+    semester: "",
+    teacherId: "",
   })
+
+  const classOptions = ["BS", "2nd Year", "1st Year", "10th", "9th", "8th", "7th", "6th", "5th", "4th", "3rd", "2nd", "1st"]
+
+  const getProgramOptions = (classLevel: string) => {
+    if (classLevel === "9th" || classLevel === "10th") {
+      return ["Science", "Arts"]
+    }
+    if (classLevel === "1st Year" || classLevel === "2nd Year") {
+      return ["Pre-Engineering", "Pre-Medical", "Arts", "ICS", "I.Com"]
+    }
+    if (classLevel === "BS") {
+      return ["BS Computer Science", "BS Islamic Studies", "BS English", "BS Physics", "BS Chemistry", "BS Mathematics", "BS Zoology", "BS Botany", "BS Psychology", "BS Economics", "BS Sociology", "BS Political Science"]
+    }
+    return [] // Others
+  }
 
   useEffect(() => {
     fetchCourses()
+    fetchTeachers()
   }, [])
+
+  const fetchTeachers = async () => {
+    try {
+      const res = await fetch("/api/admin/users?role=TEACHER")
+      const data = await res.json()
+      if (res.ok) {
+        setTeachers(data.users)
+      }
+    } catch (err) {
+      console.error("Failed to fetch teachers")
+    }
+  }
 
   const fetchCourses = async () => {
     try {
@@ -52,8 +86,33 @@ export default function AdminCoursesPage() {
     setFormData({
       title: course.title,
       description: course.description || "",
+      classLevel: course.classLevel || "",
+      program: course.program || "",
+      semester: course.semester || "",
+      teacherId: course.teacherId?._id || course.teacherId || "",
     })
     setShowEditModal(true)
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const res = await fetch("/api/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      })
+      if (res.ok) {
+        setShowAddModal(false)
+        setFormData({ title: "", description: "", classLevel: "", program: "", semester: "", teacherId: "" })
+        fetchCourses()
+      }
+    } catch (err) {
+      console.error("Error creating course")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -108,15 +167,27 @@ export default function AdminCoursesPage() {
           </div>
         </div>
 
-        <div style={{ position: 'relative', width: '100%', maxWidth: '300px' }}>
-          <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} size={18} />
-          <input 
-            type="text" 
-            placeholder="Search courses or teachers..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 3rem', borderRadius: '1rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
-          />
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: '300px' }}>
+            <Search style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.4 }} size={18} />
+            <input 
+              type="text" 
+              placeholder="Search courses or teachers..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: '100%', padding: '0.75rem 1rem 0.75rem 3rem', borderRadius: '1rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
+            />
+          </div>
+          <button 
+            onClick={() => {
+              setFormData({ title: "", description: "", classLevel: "", program: "", semester: "", teacherId: "" })
+              setShowAddModal(true)
+            }}
+            className="btn btn-primary" 
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
+          >
+            <PlusCircle size={18} /> Create Course
+          </button>
         </div>
       </div>
 
@@ -132,6 +203,7 @@ export default function AdminCoursesPage() {
             <thead>
               <tr style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>
                 <th style={{ padding: '1rem 1.5rem' }}>Course Info</th>
+                <th style={{ padding: '1rem 1.5rem' }}>Class</th>
                 <th style={{ padding: '1rem 1.5rem' }}>Instructor</th>
                 <th style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>Enrolled</th>
                 <th style={{ padding: '1rem 1.5rem' }}>Status</th>
@@ -147,11 +219,28 @@ export default function AdminCoursesPage() {
                         <PlayCircle size={24} />
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600 }}>{course.title}</div>
-                        <div style={{ fontSize: '0.75rem', opacity: 0.6, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: 600 }} className="capitalize">{course.title}</div>
+                        <div style={{ fontSize: '0.75rem', opacity: 0.6, maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} className="capitalize">
                           {course.description || "No description provided"}
                         </div>
                       </div>
+                    </div>
+                  </td>
+                   <td style={{ padding: '1rem 1.5rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }} className="capitalize">
+                      <span style={{ fontWeight: 600, color: 'var(--primary)', background: 'var(--primary)10', padding: '0.25rem 0.5rem', borderRadius: '0.5rem', alignSelf: 'flex-start' }}>
+                        {course.classLevel || "N/A"}
+                      </span>
+                      {course.program && (
+                        <span style={{ fontSize: '0.7rem', opacity: 0.6, marginTop: '0.25rem', paddingLeft: '0.25rem' }}>
+                          {course.program}
+                        </span>
+                      )}
+                      {course.semester && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 600, marginTop: '0.1rem', paddingLeft: '0.25rem' }}>
+                          {course.semester}
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td style={{ padding: '1rem 1.5rem' }}>
@@ -160,7 +249,7 @@ export default function AdminCoursesPage() {
                         {course.teacherId?.name?.[0] || 'T'}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{course.teacherId?.name || "Unknown Teacher"}</div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }} className="capitalize">{course.teacherId?.name || "Unknown Teacher"}</div>
                         <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{course.teacherId?.email}</div>
                       </div>
                     </div>
@@ -229,8 +318,16 @@ export default function AdminCoursesPage() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
           <div className="glass-card animate-scale-in" style={{ maxWidth: '500px', width: '100%', background: 'white' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}>Edit Course Name</h3>
-              <button onClick={() => setShowEditModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}><X size={20} /></button>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}>Edit Course</h3>
+              <button 
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingCourse(null)
+                }} 
+                style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}
+              >
+                <X size={20} />
+              </button>
             </div>
             <form onSubmit={handleUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
@@ -243,8 +340,158 @@ export default function AdminCoursesPage() {
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                 />
               </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Class Level</label>
+                <select 
+                  value={formData.classLevel}
+                  onChange={(e) => setFormData({...formData, classLevel: e.target.value, program: "", semester: ""})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                >
+                  <option value="">Select Class</option>
+                  {classOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Program / Stream</label>
+                {formData.classLevel && ["9th", "10th", "1st Year", "2nd Year", "BS"].includes(formData.classLevel) ? (
+                  <select 
+                    value={formData.program}
+                    onChange={(e) => setFormData({...formData, program: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  >
+                    <option value="">Select Program</option>
+                    {getProgramOptions(formData.classLevel).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                ) : (
+                  <input 
+                    type="text"
+                    placeholder={formData.classLevel ? "e.g. Science, Arts or custom tags" : "Select class first"}
+                    disabled={!formData.classLevel}
+                    value={formData.program}
+                    onChange={(e) => setFormData({...formData, program: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: formData.classLevel ? '#f8fafc' : '#f1f5f9', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  />
+                )}
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Assign Instructor</label>
+                <select 
+                  value={formData.teacherId}
+                  onChange={(e) => setFormData({...formData, teacherId: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                >
+                  <option value="">Select a teacher</option>
+                  {teachers.map(t => (
+                    <option key={t._id} value={t._id}>{t.name} ({t.email})</option>
+                  ))}
+                </select>
+              </div>
               <button className="btn btn-primary" disabled={submitting} style={{ padding: '0.75rem', marginTop: '0.5rem' }}>
                 {submitting ? <Loader2 className="animate-spin" /> : "Save Changes"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Modal */}
+      {showAddModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}>
+          <div className="glass-card animate-scale-in" style={{ maxWidth: '500px', width: '100%', background: 'white' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}>Create New Course</h3>
+              <button onClick={() => setShowAddModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Course Title</label>
+                <input 
+                  type="text" 
+                  required
+                  placeholder="e.g. Physics"
+                  value={formData.title}
+                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Class Level</label>
+                <select 
+                  required
+                  value={formData.classLevel}
+                  onChange={(e) => setFormData({...formData, classLevel: e.target.value, program: "", semester: ""})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                >
+                  <option value="">Select Class</option>
+                  {classOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Program / Stream</label>
+                {formData.classLevel && ["9th", "10th", "1st Year", "2nd Year", "BS"].includes(formData.classLevel) ? (
+                  <select 
+                    required
+                    value={formData.program}
+                    onChange={(e) => setFormData({...formData, program: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  >
+                    <option value="">Select Program</option>
+                    {getProgramOptions(formData.classLevel).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                ) : (
+                  <input 
+                    type="text"
+                    placeholder={formData.classLevel ? "e.g. Science, Arts or custom tags" : "Select class first"}
+                    disabled={!formData.classLevel}
+                    value={formData.program}
+                    onChange={(e) => setFormData({...formData, program: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: formData.classLevel ? '#f8fafc' : '#f1f5f9', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  />
+                )}
+              </div>
+              {formData.classLevel === "BS" && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Semester</label>
+                  <select 
+                    required
+                    value={formData.semester}
+                    onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  >
+                    <option value="">Select Semester</option>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
+                      <option key={s} value={`${s}${s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester`}>
+                        {s}{s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Assign Instructor</label>
+                <select 
+                  required
+                  value={formData.teacherId}
+                  onChange={(e) => setFormData({...formData, teacherId: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                >
+                  <option value="">Select a teacher</option>
+                  {teachers.map(t => (
+                    <option key={t._id} value={t._id}>{t.name} ({t.email})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Description</label>
+                <textarea 
+                  rows={3}
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                />
+              </div>
+              <button className="btn btn-primary" disabled={submitting} style={{ padding: '0.75rem', marginTop: '0.5rem' }}>
+                {submitting ? <Loader2 className="animate-spin" /> : "Create Course"}
               </button>
             </form>
           </div>

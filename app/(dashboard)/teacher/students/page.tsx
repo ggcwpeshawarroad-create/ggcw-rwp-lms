@@ -88,9 +88,12 @@ export default function TeacherStudentsPage() {
     }
   }
 
-  const filteredEnrollments = enrollments.filter(e => 
+  const filteredEnrollments = enrollments.filter(e =>
     e.userId?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    e.courseId?.title?.toLowerCase().includes(search.toLowerCase())
+    e.courseId?.title?.toLowerCase().includes(search.toLowerCase()) ||
+    e.userId?.program?.toLowerCase().includes(search.toLowerCase()) ||
+    e.userId?.classLevel?.toLowerCase().includes(search.toLowerCase()) ||
+    e.userId?.registrationNumber?.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -138,50 +141,80 @@ export default function TeacherStudentsPage() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 0.5rem', textAlign: 'left' }}>
             <thead>
-              <tr style={{ color: '#64748b', fontSize: '0.875rem', fontWeight: 600 }}>
-                <th style={{ padding: '1rem 1.5rem' }}>Student</th>
-                <th style={{ padding: '1rem 1.5rem' }}>Enrolled Course</th>
-                <th style={{ padding: '1rem 1.5rem' }}>Enrollment Date</th>
-                <th style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>Actions</th>
+              <tr style={{ color: '#64748b', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <th style={{ padding: '0.75rem 1.25rem' }}>Student</th>
+                <th style={{ padding: '0.75rem 1.25rem' }}>Program / Class</th>
+                <th style={{ padding: '0.75rem 1.25rem' }}>Enrolled Course</th>
+                <th style={{ padding: '0.75rem 1.25rem' }}>Date</th>
+                <th style={{ padding: '0.75rem 1.25rem', textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredEnrollments.map((enr: any) => (
-                <tr key={enr._id} style={{ background: 'rgba(255,255,255,0.02)' }}>
-                  <td style={{ padding: '1rem 1.5rem' }}>
+                <tr key={enr._id} style={{ background: 'white', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', borderRadius: '0.75rem' }}>
+                  {/* Student info */}
+                  <td style={{ padding: '1rem 1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                       <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 700 }}>
-                        {enr.userId?.name?.[0]}
+                      <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'var(--primary)15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 800, fontSize: '1rem', flexShrink: 0 }}>
+                        {enr.userId?.name?.[0]?.toUpperCase()}
                       </div>
                       <div>
-                        <div style={{ fontWeight: 600 }}>{enr.userId?.name}</div>
-                        <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{enr.userId?.email}</div>
+                        <div style={{ fontWeight: 700, color: '#1e293b', fontSize: '0.9rem' }} className="capitalize">{enr.userId?.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{enr.userId?.email}</div>
                         {enr.userId?.registrationNumber && (
-                          <div style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>
-                            Reg: {enr.userId.registrationNumber}
-                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700, marginTop: '0.1rem' }}>Reg# {enr.userId.registrationNumber}</div>
                         )}
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '1rem 1.5rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <BookOpen size={16} opacity={0.5} />
-                      <span style={{ fontWeight: 500 }}>{enr.courseId?.title}</span>
+
+                  {/* Program / Class / Semester */}
+                  <td style={{ padding: '1rem 1.25rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                      {enr.userId?.program && (
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.55rem', borderRadius: '0.35rem', background: 'rgba(79,70,229,0.08)', color: '#4f46e5', width: 'fit-content' }}>
+                          {enr.userId.program}
+                        </span>
+                      )}
+                      {enr.userId?.classLevel && (
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.55rem', borderRadius: '0.35rem', background: 'rgba(16,185,129,0.08)', color: '#059669', width: 'fit-content' }}>
+                          {enr.userId.classLevel}
+                        </span>
+                      )}
+                      {enr.userId?.semester && (
+                        <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '0.15rem 0.55rem', borderRadius: '0.35rem', background: 'rgba(245,158,11,0.08)', color: '#d97706', width: 'fit-content' }}>
+                          {enr.userId.semester}
+                        </span>
+                      )}
+                      {!enr.userId?.program && !enr.userId?.classLevel && !enr.userId?.semester && (
+                        <span style={{ fontSize: '0.75rem', color: '#cbd5e1' }}>—</span>
+                      )}
                     </div>
                   </td>
-                  <td style={{ padding: '1rem 1.5rem' }}>
-                    <span style={{ fontSize: '0.875rem', opacity: 0.7 }}>
+
+                  {/* Course */}
+                  <td style={{ padding: '1rem 1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <BookOpen size={15} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                      <span style={{ fontWeight: 600, color: '#1e293b', fontSize: '0.875rem' }} className="capitalize">{enr.courseId?.title}</span>
+                    </div>
+                  </td>
+
+                  {/* Date */}
+                  <td style={{ padding: '1rem 1.25rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
                       {new Date(enr.createdAt).toLocaleDateString()}
                     </span>
                   </td>
-                  <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
-                    <button 
+
+                  {/* Actions */}
+                  <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
+                    <button
                       onClick={() => handleRemove(enr._id, enr.userId?.name)}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.5rem' }}
+                      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', cursor: 'pointer', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                       title="Remove Student"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={13} /> Remove
                     </button>
                   </td>
                 </tr>
@@ -218,7 +251,7 @@ export default function TeacherStudentsPage() {
                 >
                   <option value="">Choose a course...</option>
                   {courses.map(c => (
-                    <option key={c._id} value={c._id}>{c.title}</option>
+                    <option key={c._id} value={c._id} className="capitalize">{c.title}</option>
                   ))}
                 </select>
               </div>

@@ -54,24 +54,28 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
-
-    if (!session || (session.user.role !== "TEACHER" && session.user.role !== "ADMIN")) {
+    
+    // Only Admin can create courses now
+    if (!session || session.user.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
-
-    const { title, description, thumbnail } = await req.json()
-
+ 
+    const { title, description, thumbnail, classLevel, program, semester, teacherId: providedTeacherId } = await req.json()
+ 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 })
     }
-
+ 
     await connectDB()
-
+ 
     const course = await Course.create({
       title,
       description,
       thumbnail,
-      teacherId: session.user.id,
+      classLevel: classLevel || "",
+      program: program || "",
+      semester: semester || "",
+      teacherId: providedTeacherId || session.user.id,
       published: false,
     })
 

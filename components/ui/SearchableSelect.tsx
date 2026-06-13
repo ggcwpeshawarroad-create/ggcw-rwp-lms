@@ -61,7 +61,7 @@ export function SearchableSelect({ options, value, onChange, placeholder, label 
         <div style={{ fontSize: '0.875rem', color: selectedOption ? 'inherit' : '#94a3b8' }}>
           {selectedOption ? (
             <div>
-              <div style={{ fontWeight: 600 }}>{selectedOption.label}</div>
+              <div style={{ fontWeight: 600 }} className="capitalize">{selectedOption.label}</div>
               {selectedOption.subLabel && <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>{selectedOption.subLabel}</div>}
             </div>
           ) : placeholder}
@@ -127,7 +127,7 @@ export function SearchableSelect({ options, value, onChange, placeholder, label 
                   onMouseLeave={(e) => (e.currentTarget.style.background = value === opt.id ? 'var(--primary)05' : 'transparent')}
                 >
                   <div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: value === opt.id ? 700 : 500 }}>{opt.label}</div>
+                    <div style={{ fontSize: '0.875rem', fontWeight: value === opt.id ? 700 : 500 }} className="capitalize">{opt.label}</div>
                     {opt.subLabel && <div style={{ fontSize: '0.75rem', opacity: 0.5 }}>{opt.subLabel}</div>}
                   </div>
                   {value === opt.id && <Check size={16} color="var(--primary)" />}

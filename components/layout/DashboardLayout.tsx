@@ -14,6 +14,7 @@ import {
   Activity
 } from "lucide-react"
 import styles from "./DashboardLayout.module.css"
+import { formatText } from "@/lib/utils"
 
 export default function DashboardLayout({ 
   children, 
@@ -73,11 +74,18 @@ export default function DashboardLayout({
     <div className={styles.container}>
       <aside className={styles.sidebar}>
         <div className={styles.logo}>
-          <div style={{ background: 'white', padding: '0.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-            <img src="/logo.png" alt="Logo" style={{ height: '40px', display: 'block' }} />
+          <div style={{ 
+            background: 'white', 
+            padding: '0.625rem', 
+            borderRadius: '1rem', 
+            marginBottom: '1rem', 
+            boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+            border: '1px solid rgba(0,0,0,0.02)'
+          }}>
+            <img src="/logo.png" alt="Logo" style={{ height: '44px', display: 'block' }} />
           </div>
-          <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--primary)', textAlign: 'center', lineHeight: 1.2 }}>
-            Govt. Graduate College<br />Rawalpindi
+          <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary)', textAlign: 'center', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
+            Govt. Graduate College<br /><span style={{ opacity: 0.6 }}>Rawalpindi</span>
           </div>
         </div>
 
@@ -92,7 +100,7 @@ export default function DashboardLayout({
                 className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
               >
                 <Icon size={20} />
-                <span>{item.name}</span>
+                <span className="capitalize">{item.name}</span>
               </Link>
             )
           })}
@@ -113,12 +121,14 @@ export default function DashboardLayout({
         <header className={styles.header}>
           <h1>{pathnameToTitle(pathname)}</h1>
           <div className={styles.userProfile}>
-            <div style={{ marginRight: '1rem', textAlign: 'right' }}>
-              <div style={{ fontSize: '0.75rem', opacity: 0.6 }}>Welcome,</div>
-              <div style={{ fontWeight: 700, color: 'var(--primary)' }}>{userName || role}</div>
+            <div style={{ marginRight: '0.75rem', textAlign: 'right' }}>
+              <div style={{ fontSize: '0.7rem', opacity: 0.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Logged in as</div>
+              <div style={{ fontWeight: 700, color: 'var(--primary)', fontSize: '0.9375rem' }}>
+                {userName ? formatText(userName) : formatText(role || "")}
+              </div>
             </div>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 700, boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-              {(userName || role)[0]}
+            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9375rem', fontWeight: 800, boxShadow: '0 4px 6px -1px rgba(var(--primary-rgb, 1, 65, 28), 0.3)' }}>
+              {userName ? formatText(userName)[0] : formatText(role || "")[0]}
             </div>
           </div>
         </header>

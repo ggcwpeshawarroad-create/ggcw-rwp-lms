@@ -21,6 +21,15 @@ const CourseSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    classLevel: {
+      type: String,
+    },
+    program: {
+      type: String,
+    },
+    semester: {
+      type: String,
+    },
   },
   {
     timestamps: true,

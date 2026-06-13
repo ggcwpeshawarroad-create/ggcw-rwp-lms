@@ -18,15 +18,29 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get("limit") || "50")
     const skip = (page - 1) * limit
 
+    const action = searchParams.get("action")
+    const userId = searchParams.get("userId")
+    const startDate = searchParams.get("startDate")
+    const endDate = searchParams.get("endDate")
+
     await connectDB()
 
-    const logs = await Log.find()
+    const filter: any = {}
+    if (action) filter.action = action
+    if (userId) filter.userId = userId
+    if (startDate || endDate) {
+      filter.createdAt = {}
+      if (startDate) filter.createdAt.$gte = new Date(startDate)
+      if (endDate) filter.createdAt.$lte = new Date(endDate)
+    }
+
+    const logs = await Log.find(filter)
       .populate("userId", "name email role")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
 
-    const total = await Log.countDocuments()
+    const total = await Log.countDocuments(filter)
 
     return NextResponse.json({
       logs,
