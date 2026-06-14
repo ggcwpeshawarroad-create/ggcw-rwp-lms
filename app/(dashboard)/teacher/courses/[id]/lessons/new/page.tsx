@@ -155,7 +155,7 @@ export default function NewLessonPage() {
       const body: any = { title, content, type: selectedType, chapterId, startDate, endDate, isRetakeAllowed }
       if (selectedType === "LECTURE") body.videoUrl = videoUrl
       if (selectedType === "QUIZ") body.quizData = quizData
-      if (selectedType === "DOCUMENT" || selectedType === "LECTURE") body.attachments = attachments
+      if (selectedType === "DOCUMENT" || selectedType === "LECTURE" || selectedType === "ASSIGNMENT") body.attachments = attachments
       if (selectedType === "SLIDER") body.attachments = sliderImages.map(img => ({ name: img.name, url: img.url }))
 
       const res = await fetch(`/api/courses/${id}/lessons`, {
