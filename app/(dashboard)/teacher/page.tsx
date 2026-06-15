@@ -15,9 +15,11 @@ export default async function TeacherPage() {
 
   if (session?.user?.id) {
     await connectDB()
-    const rawCourses = await Course.find({ teacherId: session.user.id })
+    const rawEnrollments = await Enrollment.find({ userId: session.user.id })
       .sort({ createdAt: -1 })
+      .populate("courseId", "title description program classLevel semester published teacherId")
       .lean()
+    const rawCourses = rawEnrollments.map((enrollment: any) => enrollment.courseId).filter(Boolean)
 
     courseCount = rawCourses.length
 
@@ -62,7 +64,10 @@ export default async function TeacherPage() {
           <p style={{ fontSize: '1.1rem', opacity: 0.9, maxWidth: '600px' }}>Manage your courses, track student performance, and create engaging learning experiences.</p>
           <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
             <Link href="/teacher/courses" className="btn" style={{ background: 'white', color: 'var(--primary)', fontWeight: 700, padding: '0.75rem 1.5rem', textDecoration: 'none' }}>
-              View My Courses
+              My Courses
+            </Link>
+            <Link href="/teacher/browse" className="btn" style={{ background: "rgba(255,255,255,0.12)", color: "white", fontWeight: 700, padding: "0.75rem 1.5rem", textDecoration: "none", border: "1px solid rgba(255,255,255,0.35)" }}>
+              Browse Courses
             </Link>
           </div>
         </div>
@@ -106,9 +111,9 @@ export default async function TeacherPage() {
           {courses.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem 0', background: '#f8fafc', borderRadius: '1rem', border: '1px dashed #e2e8f0' }}>
               <BookOpen size={48} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
-              <p style={{ color: '#64748b', fontWeight: 500 }}>No courses assigned yet.</p>
-              <Link href="/teacher/courses" className="btn btn-primary" style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
-                <PlusCircle size={18} /> Go to My Courses
+              <p style={{ color: '#64748b', fontWeight: 500 }}>No courses enrolled yet.</p>
+              <Link href="/teacher/browse" className="btn btn-primary" style={{ marginTop: '1rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', textDecoration: 'none' }}>
+                <PlusCircle size={18} /> Browse Courses
               </Link>
             </div>
           ) : (
@@ -150,7 +155,7 @@ export default async function TeacherPage() {
             {[
               { label: "Grade Submissions", icon: ClipboardList, desc: "Review pending work", href: "/teacher/students" },
               { label: "My Students", icon: Users, desc: `${totalStudents} enrolled`, href: "/teacher/students" },
-              { label: "Manage Courses", icon: BookOpen, desc: `${courseCount} course${courseCount !== 1 ? 's' : ''}`, href: "/teacher/courses" },
+              { label: "My Courses", icon: BookOpen, desc: `${courseCount} course${courseCount !== 1 ? 's' : ''}`, href: "/teacher/courses" },
             ].map((action, i) => (
               <Link key={i} href={action.href} style={{
                 display: 'flex',

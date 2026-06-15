@@ -139,7 +139,7 @@ export default function CourseBuilderPage() {
         <div style={{ display: 'flex', gap: '1rem' }}>
           {course?.isOwner && (
           <button 
-            onClick={() => router.push(`/teacher/courses//submissions`)}
+            onClick={() => router.push(`/teacher/courses/${id}/submissions`)}
             className="btn" 
             style={{ background: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--glass-border)' }}
           >
@@ -186,7 +186,7 @@ export default function CourseBuilderPage() {
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   {course?.isOwner && (
                   <button 
-                    onClick={() => router.push(`/teacher/courses//lessons/new?chapterId=`)}
+                    onClick={() => router.push(`/teacher/courses/${id}/lessons/new?chapterId=${chapter._id}`)}
                     style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700 }}
                   >
                     <Plus size={14} /> Add Lesson

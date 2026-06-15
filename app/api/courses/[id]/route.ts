@@ -10,10 +10,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    const session = await getServerSession(authOptions)
     await connectDB()
     const course = await Course.findById(id).populate("teacherId", "name email")
     if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
-    return NextResponse.json(course)
+    const courseData = course.toObject()
+    courseData.isOwner = !!session?.user?.id && (course.teacherId?._id?.toString() === session.user.id || course.teacherId?.toString() === session.user.id)
+    return NextResponse.json(courseData)
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch course" }, { status: 500 })
   }
