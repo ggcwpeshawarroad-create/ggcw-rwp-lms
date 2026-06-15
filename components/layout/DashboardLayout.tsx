@@ -1,4 +1,5 @@
 "use client"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "next-auth/react"
@@ -11,7 +12,10 @@ import {
   LogOut,
   GraduationCap,
   UserPlus,
-  Activity
+  Activity,
+  SlidersHorizontal,
+  Menu,
+  X
 } from "lucide-react"
 import styles from "./DashboardLayout.module.css"
 import { formatText } from "@/lib/utils"
@@ -27,6 +31,7 @@ export default function DashboardLayout({
   role: "ADMIN" | "TEACHER" | "STUDENT",
   userName?: string
 }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
 
   const navItems = {
@@ -34,12 +39,14 @@ export default function DashboardLayout({
       { name: "Overview", href: "/admin", icon: LayoutDashboard },
       { name: "Users", href: "/admin/users", icon: Users },
       { name: "Courses", href: "/admin/courses", icon: BookOpen },
+      { name: "Academic Config", href: "/admin/academic-config", icon: SlidersHorizontal },
       { name: "Logs", href: "/admin/logs", icon: Activity },
       { name: "Add User", href: "/admin/users/add", icon: UserPlus },
       { name: "Settings", href: "/admin/settings", icon: Settings },
     ],
     TEACHER: [
       { name: "Overview", href: "/teacher", icon: LayoutDashboard },
+      { name: "Courses", href: "/teacher/browse", icon: Search },
       { name: "My Courses", href: "/teacher/courses", icon: BookOpen },
       { name: "Students", href: "/teacher/students", icon: Users },
     ],
@@ -57,11 +64,13 @@ export default function DashboardLayout({
       "/admin": "Admin Overview",
       "/admin/users": "User Management",
       "/admin/courses": "Platform Courses",
+      "/admin/academic-config": "Academic Config",
       "/admin/users/add": "Add New User",
       "/admin/logs": "System Logs",
       "/admin/settings": "System Settings",
       "/teacher": "Teacher Dashboard",
-      "/teacher/courses": "Course Management",
+      "/teacher/browse": "Courses",
+      "/teacher/courses": "My Courses",
       "/teacher/students": "Student Roster",
       "/student": "Student Dashboard",
       "/student/courses": "My Learning",
@@ -72,7 +81,11 @@ export default function DashboardLayout({
 
   return (
     <div className={styles.container}>
-      <aside className={styles.sidebar}>
+      <div 
+        className={`${styles.sidebarOverlay} ${isSidebarOpen ? styles.sidebarOverlayOpen : ''}`} 
+        onClick={() => setIsSidebarOpen(false)}
+      />
+      <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.logo}>
           <div style={{ 
             background: 'white', 
@@ -98,6 +111,7 @@ export default function DashboardLayout({
                 key={item.href} 
                 href={item.href} 
                 className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
+                onClick={() => setIsSidebarOpen(false)}
               >
                 <Icon size={20} />
                 <span className="capitalize">{item.name}</span>
@@ -119,7 +133,16 @@ export default function DashboardLayout({
 
       <main className={styles.main}>
         <header className={styles.header}>
-          <h1>{pathnameToTitle(pathname)}</h1>
+          <div className={styles.headerLeft}>
+            <button 
+              className={styles.menuButton} 
+              onClick={() => setIsSidebarOpen(true)}
+              aria-label="Open Menu"
+            >
+              <Menu size={20} />
+            </button>
+            <h1>{pathnameToTitle(pathname)}</h1>
+          </div>
           <div className={styles.userProfile}>
             <div style={{ marginRight: '0.75rem', textAlign: 'right' }}>
               <div style={{ fontSize: '0.7rem', opacity: 0.5, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Logged in as</div>
@@ -132,10 +155,10 @@ export default function DashboardLayout({
             </div>
           </div>
         </header>
-        <section className={styles.content}>
-          <div className="animate-fade-in">
+        <section className={`${styles.content} dashboard-content`}>
+          <div className="animate-fade-in dashboard-content-inner">
             {['/admin', '/teacher', '/student'].includes(pathname) && (
-              <div style={{ 
+              <div className="dashboard-school-banner" style={{ 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: '1.5rem', 
@@ -146,7 +169,7 @@ export default function DashboardLayout({
                 border: '1px solid var(--glass-border)',
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)'
               }}>
-                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
+                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} className="hide-on-mobile">
                   <img src="/logo.png" alt="Logo" style={{ height: '60px', display: 'block' }} />
                 </div>
                 <div>

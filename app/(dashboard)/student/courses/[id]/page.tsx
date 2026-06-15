@@ -197,10 +197,10 @@ export default function CoursePlayerPage() {
   )
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 80px)', margin: '-2rem', overflow: 'hidden' }}>
+    <div className="course-player-shell" style={{ display: 'flex', height: 'calc(100vh - 80px)', margin: '-2rem', overflow: 'hidden' }}>
       {/* Sidebar */}
       {showSidebar && (
-        <div style={{ width: '320px', borderRight: '1px solid rgba(0,0,0,0.1)', background: 'white', display: 'flex', flexDirection: 'column' }}>
+        <div className="course-player-sidebar" style={{ width: '320px', borderRight: '1px solid rgba(0,0,0,0.1)', background: 'white', display: 'flex', flexDirection: 'column' }}>
           <div style={{ padding: '1.5rem', borderBottom: '1px solid #f1f5f9' }}>
             <h3 style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.25rem' }}>{course?.title}</h3>
             <p style={{ fontSize: '0.75rem', opacity: 0.5 }}>Course Content</p>
@@ -243,8 +243,8 @@ export default function CoursePlayerPage() {
       )}
 
       {/* Main Content */}
-      <div suppressHydrationWarning style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc', overflowY: 'auto' }}>
-        <div style={{ padding: '1rem 2rem', background: 'white', borderBottom: '1px solid rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div suppressHydrationWarning className="course-player-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f8fafc', overflowY: 'auto' }}>
+        <div className="course-player-toolbar" style={{ padding: '1rem 2rem', background: 'white', borderBottom: '1px solid rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <button onClick={() => setShowSidebar(!showSidebar)} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}>
               <Menu size={20} />
@@ -256,7 +256,7 @@ export default function CoursePlayerPage() {
           </button>
         </div>
 
-        <div style={{ padding: '3rem', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+        <div className="course-player-body" style={{ padding: '3rem', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
           {!isMounted ? (
             <div style={{ display: 'flex', justifyContent: 'center', padding: '10rem' }}><Loader2 className="animate-spin" size={48} color="#4f46e5" /></div>
           ) : !selectedLesson ? (
@@ -331,7 +331,7 @@ export default function CoursePlayerPage() {
                             {selectedLesson.quizData?.map((q: any, qIdx: number) => (
                                <div key={qIdx}>
                                   <h4 style={{ fontWeight: 700, marginBottom: '1.25rem', fontSize: '1.1rem' }}>{qIdx + 1}. {q.question}</h4>
-                                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                  <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                                      {q.options.map((opt: string, oIdx: number) => (
                                        <div 
                                          key={oIdx}
@@ -426,21 +426,9 @@ export default function CoursePlayerPage() {
                           <a href={assignmentFile?.url} target="_blank" style={{ display: 'inline-block', marginTop: '1.5rem', fontSize: '0.875rem', color: '#4f46e5', fontWeight: 600 }}>View My Submission</a>
 
                           {(submissionData?.grade || submissionData?.feedback) && (
-                            <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', textAlign: 'left' }}>
-                              <h4 style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Instructor Marks &amp; Feedback</h4>
-                              {submissionData.grade && (
-                                <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#10b981', marginBottom: '0.5rem' }}>Final Grade: {submissionData.grade}</p>
-                              )}
-                              {submissionData.feedback && (
-                                <p style={{ fontSize: '0.95rem', lineHeight: '1.65', color: '#334155', fontStyle: 'italic' }}>{submissionData.feedback}</p>
-                              )}
-                            </div>
-                          )}
-
-                          {(submissionData?.grade || submissionData?.feedback) && (
                             <div style={{ marginTop: '2.5rem', padding: '1.5rem', background: 'white', borderRadius: '1.25rem', border: '1px solid #e2e8f0', textAlign: 'left' }}>
                               <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <BookOpen size={16} /> Instructor Feedback
+                                <BookOpen size={16} /> Instructor Marks & Feedback
                               </h4>
                               {submissionData.grade && (
                                 <div style={{ marginBottom: '1rem' }}>

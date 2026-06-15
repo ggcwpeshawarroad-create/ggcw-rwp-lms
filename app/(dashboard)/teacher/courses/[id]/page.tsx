@@ -34,6 +34,7 @@ export default function CourseBuilderPage() {
   const { id } = useParams()
   const router = useRouter()
   const [course, setCourse] = useState<any>(null)
+  const [isEnrolled, setIsEnrolled] = useState<boolean | null>(null)
   const [chapters, setChapters] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
@@ -46,16 +47,22 @@ export default function CourseBuilderPage() {
 
   const fetchCourseData = async () => {
     try {
-      const [cRes, chRes] = await Promise.all([
-        fetch(`/api/courses/${id}`),
-        fetch(`/api/courses/${id}/chapters`)
+      const [cRes, chRes, eRes] = await Promise.all([
+        fetch(`/api/courses/`),
+        fetch(`/api/courses//chapters`),
+        fetch(`/api/enrollments?courseId=`)
       ])
       const cData = await cRes.json()
       const chData = await chRes.json()
+      const eData = await eRes.json()
       if (cRes.ok) setCourse(cData)
-      if (chRes.ok) {
+
+      const enrolled = eRes.ok && Array.isArray(eData) && eData.length > 0
+      setIsEnrolled(enrolled)
+
+      if (enrolled && chRes.ok) {
         const chaptersWithLessons = await Promise.all(chData.map(async (ch: any) => {
-          const lRes = await fetch(`/api/courses/${id}/lessons?chapterId=${ch._id}`)
+          const lRes = await fetch(`/api/courses//lessons?chapterId=`)
           const lData = await lRes.json()
           return { ...ch, lessons: lRes.ok ? lData : [] }
         }))
@@ -103,6 +110,17 @@ export default function CourseBuilderPage() {
     </div>
   )
 
+  if (!isEnrolled) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center', padding: '2rem' }}>
+      <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1.5rem' }}>
+        <BookOpen size={36} color="#ef4444" />
+      </div>
+      <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e293b', marginBottom: '0.75rem' }}>Enrollment Required</h2>
+      <p style={{ color: '#64748b', fontSize: '1rem', maxWidth: '420px', lineHeight: '1.65', marginBottom: '2rem' }}>Enroll yourself in this course before entering it.</p>
+      <button onClick={() => router.push("/teacher/browse")} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 2rem' }}>Browse Courses</button>
+    </div>
+  )
+
   return (
     <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto' }}>
       {/* Header */}
@@ -119,19 +137,23 @@ export default function CourseBuilderPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
+          {course?.isOwner && (
           <button 
-            onClick={() => router.push(`/teacher/courses/${id}/submissions`)}
+            onClick={() => router.push(`/teacher/courses//submissions`)}
             className="btn" 
             style={{ background: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--glass-border)' }}
           >
             <ClipboardList size={18} /> Submissions
           </button>
+          )}
           <button className="btn" style={{ background: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--glass-border)' }}>
             <Eye size={18} /> Preview
           </button>
+          {course?.isOwner && (
           <button onClick={() => setShowAddChapter(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Plus size={18} /> Add Chapter
           </button>
+          )}
         </div>
       </div>
 
@@ -162,15 +184,19 @@ export default function CourseBuilderPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  {course?.isOwner && (
                   <button 
-                    onClick={() => router.push(`/teacher/courses/${id}/lessons/new?chapterId=${chapter._id}`)}
+                    onClick={() => router.push(`/teacher/courses//lessons/new?chapterId=`)}
                     style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700 }}
                   >
                     <Plus size={14} /> Add Lesson
                   </button>
+                  )}
+                  {course?.isOwner && (
                   <button style={{ padding: '0.5rem', background: 'none', border: 'none', opacity: 0.4, cursor: 'pointer' }}>
                     <MoreVertical size={18} />
                   </button>
+                  )}
                 </div>
               </div>
 
@@ -207,7 +233,7 @@ export default function CourseBuilderPage() {
                             </span>
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                        <div style={{ display: course?.isOwner ? 'flex' : 'none', gap: '0.4rem', alignItems: 'center' }}>
                           {deletingLessonId === lesson._id ? (
                             <>
                               <span style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap' }}>Delete?</span>

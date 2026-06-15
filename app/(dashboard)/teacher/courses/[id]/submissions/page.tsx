@@ -38,6 +38,10 @@ export default function SubmissionsPage() {
     }
   }, [selectedSubmission])
 
+  useEffect(() => {
+    fetchSubmissions()
+  }, [])
+
   const fetchSubmissions = async () => {
     try {
       const res = await fetch(`/api/courses/${id}/submissions`)
@@ -235,7 +239,7 @@ export default function SubmissionsPage() {
 
             {selectedSubmission.lessonId?.type === 'QUIZ' && (
               <>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
                   <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Auto-Score</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{selectedSubmission.score} / {selectedSubmission.totalQuestions}</div>
@@ -262,7 +266,7 @@ export default function SubmissionsPage() {
                           <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>{qi + 1}</span>
                           {q.question}
                         </h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                        <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
                           {q.options?.map((opt: string, oi: number) => {
                             const isSelected = subAns?.answerIndex === oi
                             const isCorrect = q.correctAnswer === oi
@@ -295,7 +299,7 @@ export default function SubmissionsPage() {
 
             <div style={{ marginTop: '2.5rem', borderTop: '2px solid #f1f5f9', paddingTop: '2.5rem' }}>
               <h4 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Evaluation & Feedback</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+              <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Grade</label>
                   <input 

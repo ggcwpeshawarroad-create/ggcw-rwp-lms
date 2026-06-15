@@ -311,7 +311,7 @@ export default function EditLessonPage() {
               <h4 style={{ fontWeight: 700, fontSize: '0.9rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Edit size={16} /> Schedule & Restrictions
               </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
                   <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.4rem' }}>Start Date & Time</label>
                   <input
@@ -432,7 +432,7 @@ export default function EditLessonPage() {
                       />
                       <button type="button" onClick={() => removeQuestion(qi)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}><Trash2 size={20} /></button>
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                    <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                       {q.options.map((opt, oi) => (
                         <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '1rem', background: q.correctAnswer === oi ? '#f0fdf4' : 'white', borderRadius: '0.75rem', border: `2px solid ${q.correctAnswer === oi ? '#10b981' : '#e2e8f0'}`, cursor: 'pointer' }}>
                           <input type="radio" checked={q.correctAnswer === oi} onChange={() => updateQuestion(qi, "correctAnswer", oi)} style={{ transform: 'scale(1.2)' }} />

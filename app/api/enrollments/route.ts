@@ -23,11 +23,14 @@ export async function GET(req: Request) {
       // Students can only see their own enrollments
       query.userId = session.user.id
     } else if (session.user.role === "TEACHER") {
-      // Teachers see enrollments for their own courses only
+      // Teachers see: their own enrollments + student enrollments in their courses
       const teacherCourses = await Course.find({ teacherId: session.user.id }, "_id")
       const courseIds = teacherCourses.map(c => c._id)
-      query.courseId = courseId ? courseId : { $in: courseIds }
-      if (userId) query.userId = userId
+      const teacherCourseId = courseId ? courseId : { $in: courseIds }
+      query.$or = [
+        { userId: session.user.id }, // self-enrollments
+        { courseId: teacherCourseId, ...(userId ? { userId } : {}) } // students in their courses
+      ]
     } else {
       // Admin can filter by userId if provided
       if (userId) query.userId = userId
@@ -35,9 +38,17 @@ export async function GET(req: Request) {
 
     const enrollments = await Enrollment.find(query)
       .populate("userId", "name email registrationNumber classLevel program semester")
-      .populate("courseId", "title description program classLevel semester")
+      .populate("courseId", "title description program classLevel semester published teacherId")
 
-    return NextResponse.json(enrollments)
+    const enrollmentsWithOwnership = enrollments.map((enrollment: any) => {
+      const item = enrollment.toObject()
+      if (item.courseId && session.user.role === "TEACHER") {
+        item.courseId.isOwner = item.courseId.teacherId?.toString() === session.user.id
+      }
+      return item
+    })
+
+    return NextResponse.json(enrollmentsWithOwnership)
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch enrollments" }, { status: 500 })
   }
@@ -62,7 +73,15 @@ export async function POST(req: Request) {
     if (session.user.role === "STUDENT") {
       // Students always enroll themselves — ignore any userId in body
       userId = session.user.id
-    } else if (session.user.role === "ADMIN" || session.user.role === "TEACHER") {
+    } else if (session.user.role === "TEACHER") {
+      if (bodyUserId) {
+        // Teacher enrolling someone else — only allowed for their own course (enforced below)
+        userId = bodyUserId
+      } else {
+        // Teacher self-enrolling
+        userId = session.user.id
+      }
+    } else if (session.user.role === "ADMIN") {
       if (!bodyUserId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
       userId = bodyUserId
     } else {
@@ -76,7 +95,8 @@ export async function POST(req: Request) {
     if (session.user.role === "STUDENT" && !course.published) {
       return NextResponse.json({ error: "Course not available" }, { status: 400 })
     }
-    if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
+    // If a teacher is enrolling someone *else*, they must own that course
+    if (session.user.role === "TEACHER" && bodyUserId && course.teacherId.toString() !== session.user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 

@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { BookOpen, Loader2, PlayCircle, Edit2, X } from "lucide-react"
+import { BookOpen, Loader2, PlayCircle, Edit2, X, UserPlus, CheckCircle } from "lucide-react"
 import Link from "next/link"
 
 export default function TeacherCoursesPage() {
@@ -8,6 +8,9 @@ export default function TeacherCoursesPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set())
+  const [enrollingId, setEnrollingId] = useState<string | null>(null)
+  const [academicConfig, setAcademicConfig] = useState<any[]>([])
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -17,34 +20,60 @@ export default function TeacherCoursesPage() {
     semester: "",
   })
 
-  const classOptions = ["BS", "2nd Year", "1st Year", "10th", "9th", "8th", "7th", "6th", "5th", "4th", "3rd", "2nd", "1st"]
+  const classOptions = academicConfig.map(c => c.name)
 
   const getProgramOptions = (classLevel: string) => {
-    if (classLevel === "9th" || classLevel === "10th") {
-      return ["Science", "Arts"]
-    }
-    if (classLevel === "1st Year" || classLevel === "2nd Year") {
-      return ["Pre-Engineering", "Pre-Medical", "Arts", "ICS", "I.Com"]
-    }
-    if (classLevel === "BS") {
-      return ["BS Computer Science", "BS Islamic Studies", "BS English", "BS Physics", "BS Chemistry", "BS Mathematics", "BS Zoology", "BS Botany", "BS Psychology", "BS Economics", "BS Sociology", "BS Political Science"]
-    }
-    return []
+    return academicConfig.find(c => c.name === classLevel)?.programs || []
   }
+
+  const getSemesterOptions = (classLevel: string) => {
+    return academicConfig.find(c => c.name === classLevel)?.semesters || []
+  }
+
+  const hasPrograms = (classLevel: string) => getProgramOptions(classLevel).length > 0
+  const hasSemesters = (classLevel: string) => getSemesterOptions(classLevel).length > 0
 
   const [editingCourse, setEditingCourse] = useState<any>(null)
 
   useEffect(() => {
     fetchCourses()
+    fetchMyEnrollments()
+    fetch("/api/academic-config").then(r => r.json()).then(data => setAcademicConfig(data.classes || []))
   }, [])
+
+  const fetchMyEnrollments = async () => {
+    try {
+      const res = await fetch("/api/enrollments")
+      const data = await res.json()
+      if (res.ok) {
+        const ids = new Set<string>(data.map((e: any) => e.courseId?._id || e.courseId))
+        setEnrolledIds(ids)
+      }
+    } catch {}
+  }
+
+  const selfEnroll = async (courseId: string) => {
+    setEnrollingId(courseId)
+    try {
+      const res = await fetch("/api/enrollments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      })
+      if (res.ok) {
+        setEnrolledIds(prev => new Set([...prev, courseId]))
+      }
+    } catch {}
+    setEnrollingId(null)
+  }
 
   const fetchCourses = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/courses")
+      const res = await fetch("/api/enrollments")
       const data = await res.json()
       if (res.ok) {
-        setCourses(data)
+        setCourses(data.map((enrollment: any) => enrollment.courseId).filter(Boolean))
       }
     } catch (err) {
       console.error("Failed to fetch courses")
@@ -110,7 +139,7 @@ export default function TeacherCoursesPage() {
           <div style={{ background: 'var(--primary)', padding: '0.75rem', borderRadius: '1rem', color: 'white' }}>
             <BookOpen size={24} />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Assigned Courses</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Courses</h2>
         </div>
       </div>
 
@@ -119,7 +148,7 @@ export default function TeacherCoursesPage() {
             <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><Loader2 className="animate-spin" size={48} color="var(--primary)" /></div>
           ) : courses.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '4rem', background: 'rgba(255,255,255,0.02)', borderRadius: '1.5rem', border: '1px dashed var(--glass-border)' }}>
-              <p style={{ opacity: 0.6 }}>You are not assigned to any courses yet.</p>
+              <p style={{ opacity: 0.6 }}>You have not enrolled in any courses yet.</p>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -174,10 +203,11 @@ export default function TeacherCoursesPage() {
                           <Link 
                             href={`/teacher/courses/${course._id}`}
                             style={{ padding: '0.5rem', borderRadius: '0.5rem', background: '#f8fafc', color: 'var(--primary)', border: '1px solid #e2e8f0' }}
-                            title="Manage Content"
+                            title="Enter Course"
                           >
                             <PlayCircle size={18} />
                           </Link>
+                          {course.isOwner && (
                           <button 
                             onClick={() => handleEdit(course)}
                             style={{ padding: '0.5rem', borderRadius: '0.5rem', background: '#f8fafc', color: 'var(--primary)', border: '1px solid #e2e8f0' }}
@@ -185,6 +215,23 @@ export default function TeacherCoursesPage() {
                           >
                             <Edit2 size={18} />
                           </button>
+                          )}
+                          {enrolledIds.has(course._id) ? (
+                            <span style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '0.5rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}>
+                              <CheckCircle size={14} /> Enrolled
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => selfEnroll(course._id)}
+                              disabled={enrollingId === course._id}
+                              title="Enroll Yourself"
+                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '0.5rem', background: 'rgba(79,70,229,0.08)', color: 'var(--primary)', border: '1px solid rgba(79,70,229,0.2)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600, cursor: 'pointer' }}
+                            >
+                              {enrollingId === course._id ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
+                              Self-Enroll
+                            </button>
+                          )}
+                          {course.isOwner && (
                           <button 
                             onClick={() => togglePublish(course._id, course.published)}
                             className="btn" 
@@ -198,6 +245,7 @@ export default function TeacherCoursesPage() {
                           >
                             {course.published ? "Unpublish" : "Publish"}
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -248,19 +296,19 @@ export default function TeacherCoursesPage() {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Program / Stream</label>
-                {formData.classLevel && ["9th", "10th", "1st Year", "2nd Year", "BS"].includes(formData.classLevel) ? (
+                {formData.classLevel && hasPrograms(formData.classLevel) ? (
                   <select 
                     value={formData.program}
                     onChange={(e) => setFormData({...formData, program: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                   >
                     <option value="">Select Program</option>
-                    {getProgramOptions(formData.classLevel).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {getProgramOptions(formData.classLevel).map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 ) : (
                   <input 
                     type="text"
-                    placeholder={formData.classLevel ? "e.g. Science, Arts or custom tags" : "Select class first"}
+                    placeholder={formData.classLevel ? "Custom tags or program..." : "Select class first"}
                     disabled={!formData.classLevel}
                     value={formData.program}
                     onChange={(e) => setFormData({...formData, program: e.target.value})}
@@ -268,7 +316,7 @@ export default function TeacherCoursesPage() {
                   />
                 )}
               </div>
-              {formData.classLevel === "BS" && (
+              {formData.classLevel && hasSemesters(formData.classLevel) && (
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Semester</label>
                   <select 
@@ -278,10 +326,8 @@ export default function TeacherCoursesPage() {
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                   >
                     <option value="">Select Semester</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                      <option key={s} value={`${s}${s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester`}>
-                        {s}{s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester
-                      </option>
+                    {getSemesterOptions(formData.classLevel).map((s: string) => (
+                      <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                 </div>

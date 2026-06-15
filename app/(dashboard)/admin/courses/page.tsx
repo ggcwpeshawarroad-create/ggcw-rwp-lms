@@ -12,6 +12,7 @@ export default function AdminCoursesPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [teachers, setTeachers] = useState<any[]>([])
+  const [academicConfig, setAcademicConfig] = useState<any[]>([])
 
   const [formData, setFormData] = useState({
     title: "",
@@ -22,24 +23,23 @@ export default function AdminCoursesPage() {
     teacherId: "",
   })
 
-  const classOptions = ["BS", "2nd Year", "1st Year", "10th", "9th", "8th", "7th", "6th", "5th", "4th", "3rd", "2nd", "1st"]
+  const classOptions = academicConfig.map(c => c.name)
 
   const getProgramOptions = (classLevel: string) => {
-    if (classLevel === "9th" || classLevel === "10th") {
-      return ["Science", "Arts"]
-    }
-    if (classLevel === "1st Year" || classLevel === "2nd Year") {
-      return ["Pre-Engineering", "Pre-Medical", "Arts", "ICS", "I.Com"]
-    }
-    if (classLevel === "BS") {
-      return ["BS Computer Science", "BS Islamic Studies", "BS English", "BS Physics", "BS Chemistry", "BS Mathematics", "BS Zoology", "BS Botany", "BS Psychology", "BS Economics", "BS Sociology", "BS Political Science"]
-    }
-    return [] // Others
+    return academicConfig.find(c => c.name === classLevel)?.programs || []
   }
+
+  const getSemesterOptions = (classLevel: string) => {
+    return academicConfig.find(c => c.name === classLevel)?.semesters || []
+  }
+
+  const hasPrograms = (classLevel: string) => getProgramOptions(classLevel).length > 0
+  const hasSemesters = (classLevel: string) => getSemesterOptions(classLevel).length > 0
 
   useEffect(() => {
     fetchCourses()
     fetchTeachers()
+    fetch("/api/academic-config").then(r => r.json()).then(data => setAcademicConfig(data.classes || []))
   }, [])
 
   const fetchTeachers = async () => {
@@ -353,19 +353,19 @@ export default function AdminCoursesPage() {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Program / Stream</label>
-                {formData.classLevel && ["9th", "10th", "1st Year", "2nd Year", "BS"].includes(formData.classLevel) ? (
+                {formData.classLevel && hasPrograms(formData.classLevel) ? (
                   <select 
                     value={formData.program}
                     onChange={(e) => setFormData({...formData, program: e.target.value})}
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                   >
                     <option value="">Select Program</option>
-                    {getProgramOptions(formData.classLevel).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {getProgramOptions(formData.classLevel).map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 ) : (
                   <input 
                     type="text"
-                    placeholder={formData.classLevel ? "e.g. Science, Arts or custom tags" : "Select class first"}
+                    placeholder={formData.classLevel ? "Custom tags or program..." : "Select class first"}
                     disabled={!formData.classLevel}
                     value={formData.program}
                     onChange={(e) => setFormData({...formData, program: e.target.value})}
@@ -373,14 +373,29 @@ export default function AdminCoursesPage() {
                   />
                 )}
               </div>
+              {formData.classLevel && hasSemesters(formData.classLevel) && (
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Semester</label>
+                  <select 
+                    value={formData.semester}
+                    onChange={(e) => setFormData({...formData, semester: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
+                  >
+                    <option value="">Select Semester</option>
+                    {getSemesterOptions(formData.classLevel).map((s: string) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Assign Instructor</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Assign Instructor <span style={{ fontWeight: 400, opacity: 0.5, fontSize: '0.8rem' }}>(Optional)</span></label>
                 <select 
                   value={formData.teacherId}
                   onChange={(e) => setFormData({...formData, teacherId: e.target.value})}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                 >
-                  <option value="">Select a teacher</option>
+                  <option value="">No instructor assigned</option>
                   {teachers.map(t => (
                     <option key={t._id} value={t._id}>{t.name} ({t.email})</option>
                   ))}
@@ -428,7 +443,7 @@ export default function AdminCoursesPage() {
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Program / Stream</label>
-                {formData.classLevel && ["9th", "10th", "1st Year", "2nd Year", "BS"].includes(formData.classLevel) ? (
+                {formData.classLevel && hasPrograms(formData.classLevel) ? (
                   <select 
                     required
                     value={formData.program}
@@ -436,12 +451,12 @@ export default function AdminCoursesPage() {
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                   >
                     <option value="">Select Program</option>
-                    {getProgramOptions(formData.classLevel).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    {getProgramOptions(formData.classLevel).map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 ) : (
                   <input 
                     type="text"
-                    placeholder={formData.classLevel ? "e.g. Science, Arts or custom tags" : "Select class first"}
+                    placeholder={formData.classLevel ? "Custom tags or program..." : "Select class first"}
                     disabled={!formData.classLevel}
                     value={formData.program}
                     onChange={(e) => setFormData({...formData, program: e.target.value})}
@@ -449,7 +464,7 @@ export default function AdminCoursesPage() {
                   />
                 )}
               </div>
-              {formData.classLevel === "BS" && (
+              {formData.classLevel && hasSemesters(formData.classLevel) && (
                 <div>
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Semester</label>
                   <select 
@@ -459,23 +474,20 @@ export default function AdminCoursesPage() {
                     style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                   >
                     <option value="">Select Semester</option>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                      <option key={s} value={`${s}${s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester`}>
-                        {s}{s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester
-                      </option>
+                    {getSemesterOptions(formData.classLevel).map((s: string) => (
+                      <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                 </div>
               )}
               <div>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Assign Instructor</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Assign Instructor <span style={{ fontWeight: 400, opacity: 0.5, fontSize: '0.8rem' }}>(Optional)</span></label>
                 <select 
-                  required
                   value={formData.teacherId}
                   onChange={(e) => setFormData({...formData, teacherId: e.target.value})}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                 >
-                  <option value="">Select a teacher</option>
+                  <option value="">No instructor assigned</option>
                   {teachers.map(t => (
                     <option key={t._id} value={t._id}>{t.name} ({t.email})</option>
                   ))}

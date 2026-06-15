@@ -57,7 +57,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
+    <div className="responsive-flex" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
       {/* Left Side: Form */}
       <div style={{ flex: 1, minWidth: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: '#ffffff' }}>
         <div style={{ maxWidth: '400px', width: '100%' }}>

@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Submission from "@/models/Submission"
-import User from "@/models/User"
-import Lesson from "@/models/Lesson"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -12,15 +10,36 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session || (session.user?.role !== "ADMIN" && session.user?.role !== "TEACHER")) {
+    if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+    const { id } = await params
+    const { searchParams } = new URL(req.url)
+    const lessonId = searchParams.get("lessonId")
+
+    await connectDB()
+
+    // STUDENT: fetch only their own submission for a specific lesson
+    if (session.user?.role === "STUDENT") {
+      if (!lessonId) return NextResponse.json([], { status: 200 })
+      const submissions = await Submission.find({
+        courseId: id,
+        lessonId,
+        userId: session.user.id,
+      }).select("score totalQuestions answers assignmentFile submissionText grade feedback submittedAt lessonId")
+        .populate("lessonId", "title type quizData")
+        .sort({ submittedAt: -1 })
+      return NextResponse.json(submissions)
+    }
+
+    // TEACHER / ADMIN: fetch all submissions for the course
+    if (session.user?.role !== "ADMIN" && session.user?.role !== "TEACHER") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { id } = await params
-    await connectDB()
+    const query: any = { courseId: id }
+    if (lessonId) query.lessonId = lessonId
 
-    // Fetch all submissions for any lesson in this course
-    const submissions = await Submission.find({ courseId: id })
+    const submissions = await Submission.find(query)
       .populate("userId", "name email registrationNumber")
       .populate("lessonId", "title type quizData")
       .sort({ submittedAt: -1 })

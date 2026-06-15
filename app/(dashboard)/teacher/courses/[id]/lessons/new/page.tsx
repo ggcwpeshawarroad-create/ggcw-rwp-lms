@@ -261,7 +261,7 @@ export default function NewLessonPage() {
             </div>
 
             {/* Dates */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.5rem', color: '#374151' }}>Start Date (Optional)</label>
                 <input
@@ -459,7 +459,7 @@ export default function NewLessonPage() {
                           <Trash2 size={16} />
                         </button>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                      <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                         {q.options.map((opt, oi) => (
                           <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', borderRadius: '0.6rem', border: `1.5px solid ${q.correctAnswer === oi ? '#10b981' : '#e2e8f0'}`, background: q.correctAnswer === oi ? '#f0fdf4' : 'white', cursor: 'pointer', transition: 'all 0.2s' }}>
                             <input

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { UserPlus, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -11,6 +11,11 @@ export default function AddUserPage() {
   const [success, setSuccess] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
+  const [academicConfig, setAcademicConfig] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch("/api/academic-config").then(r => r.json()).then(data => setAcademicConfig(data.classes || []))
+  }, [])
 
   const [formData, setFormData] = useState({
     name: "",
@@ -23,20 +28,18 @@ export default function AddUserPage() {
     semester: "",
   })
 
-  const classOptions = ["BS", "2nd Year", "1st Year", "10th", "9th", "8th", "7th", "6th", "5th", "4th", "3rd", "2nd", "1st"]
-  
+  const classOptions = academicConfig.map(c => c.name)
+
   const getProgramOptions = (classLevel: string) => {
-    if (classLevel === "9th" || classLevel === "10th") {
-      return ["Science", "Arts"]
-    }
-    if (classLevel === "1st Year" || classLevel === "2nd Year") {
-      return ["Pre-Engineering", "Pre-Medical", "Arts", "ICS", "I.Com"]
-    }
-    if (classLevel === "BS") {
-      return ["BS Computer Science", "BS Islamic Studies", "BS English", "BS Physics", "BS Chemistry", "BS Mathematics", "BS Zoology", "BS Botany", "BS Psychology", "BS Economics", "BS Sociology", "BS Political Science"]
-    }
-    return [] // Others
+    return academicConfig.find(c => c.name === classLevel)?.programs || []
   }
+
+  const getSemesterOptions = (classLevel: string) => {
+    return academicConfig.find(c => c.name === classLevel)?.semesters || []
+  }
+
+  const hasPrograms = (classLevel: string) => getProgramOptions(classLevel).length > 0
+  const hasSemesters = (classLevel: string) => getSemesterOptions(classLevel).length > 0
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,7 +90,7 @@ export default function AddUserPage() {
         {success && <div style={{ color: '#10b981', marginBottom: '1.5rem', background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{success}</div>}
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Full Name</label>
               <input 
@@ -112,7 +115,7 @@ export default function AddUserPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+          <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Registration Number / Roll No.</label>
               <input 
@@ -160,7 +163,7 @@ export default function AddUserPage() {
             </div>
           </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: formData.role === 'STUDENT' ? (formData.classLevel === 'BS' ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr') : '1fr', gap: '1.5rem' }}>
+            <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: formData.role === 'STUDENT' ? (formData.classLevel && hasSemesters(formData.classLevel) ? '1fr 1fr 1fr 1fr' : '1fr 1fr 1fr') : '1fr', gap: '1.5rem' }}>
               <div>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Role</label>
                 <select 
@@ -191,7 +194,7 @@ export default function AddUserPage() {
 
                   <div>
                     <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Program / Stream</label>
-                    {formData.classLevel && ["9th", "10th", "1st Year", "2nd Year", "BS"].includes(formData.classLevel) ? (
+                    {formData.classLevel && hasPrograms(formData.classLevel) ? (
                       <select 
                         required
                         value={formData.program}
@@ -199,12 +202,12 @@ export default function AddUserPage() {
                         style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
                       >
                         <option value="">Select Program</option>
-                        {getProgramOptions(formData.classLevel).map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                        {getProgramOptions(formData.classLevel).map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     ) : (
                       <input 
                         type="text"
-                        placeholder={formData.classLevel ? "e.g. Science, Arts or custom tags" : "Select class first"}
+                        placeholder={formData.classLevel ? "Custom tags or program..." : "Select class first"}
                         disabled={!formData.classLevel}
                         value={formData.program}
                         onChange={(e) => setFormData({...formData, program: e.target.value})}
@@ -213,7 +216,7 @@ export default function AddUserPage() {
                     )}
                   </div>
 
-                  {formData.classLevel === "BS" && (
+                  {formData.classLevel && hasSemesters(formData.classLevel) && (
                     <div>
                       <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Semester</label>
                       <select 
@@ -223,10 +226,8 @@ export default function AddUserPage() {
                         style={{ width: '100%', padding: '0.875rem', borderRadius: '0.5rem', background: 'white', border: '1px solid var(--glass-border)', outline: 'none' }}
                       >
                         <option value="">Select Semester</option>
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
-                          <option key={s} value={`${s}${s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester`}>
-                            {s}{s === 1 ? 'st' : s === 2 ? 'nd' : s === 3 ? 'rd' : 'th'} Semester
-                          </option>
+                        {getSemesterOptions(formData.classLevel).map((s: string) => (
+                          <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
                     </div>

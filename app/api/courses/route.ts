@@ -14,11 +14,17 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url)
     const teacherId = searchParams.get("teacherId")
+    const browse = searchParams.get("browse")
+    const teacherCatalog = searchParams.get("teacherCatalog")
 
     await connectDB()
 
-    let query = {}
-    if (session.user.role === "TEACHER") {
+    let query: any = {}
+    if (browse === "true") {
+      query = { published: true }
+    } else if (teacherCatalog === "true" && session.user.role === "TEACHER") {
+      query = {}
+    } else if (session.user.role === "TEACHER") {
       query = { teacherId: session.user.id }
     } else if (session.user.role === "ADMIN") {
       // If admin and teacherId is provided, filter. Otherwise show all.
@@ -37,9 +43,11 @@ export async function GET(req: Request) {
     const coursesWithCounts = await Promise.all(
       courses.map(async (course) => {
         const enrollmentCount = await Enrollment.countDocuments({ courseId: course._id })
+        const isOwner = course.teacherId?._id?.toString() === session.user.id || course.teacherId?.toString() === session.user.id
         return {
           ...course.toObject(),
-          enrollmentCount
+          enrollmentCount,
+          isOwner
         }
       })
     )
