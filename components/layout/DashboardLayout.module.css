@@ -3,6 +3,7 @@
   min-height: 100vh;
   width: 100%;
   overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .sidebar {
@@ -13,10 +14,12 @@
   padding: 2.5rem 1.25rem;
   display: flex;
   flex-direction: column;
-  position: sticky;
+  position: fixed;
+  left: 0;
   top: 0;
   height: 100vh;
   z-index: 50;
+  overflow-y: auto;
 }
 
 .logo {
@@ -91,8 +94,10 @@
   min-width: 0;
   background: #f8fafc;
   min-height: 100vh;
+  margin-left: 270px;
   display: flex;
   flex-direction: column;
+  overflow-y: visible;
 }
 
 .header {
@@ -139,10 +144,10 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .sidebar {
     position: fixed;
-    width: min(270px, 86vw);
+    width: min(300px, 88vw);
     left: 0;
     top: 0;
     transform: translateX(-100%);
@@ -167,8 +172,12 @@
     opacity: 1;
     pointer-events: auto;
   }
+  .main {
+    margin-left: 0;
+  }
+
   .header {
-    padding: 0.875rem 1rem;
+    padding: calc(0.875rem + env(safe-area-inset-top)) 1rem 0.875rem;
     align-items: center;
   }
   .header h1 {
@@ -178,6 +187,9 @@
   }
   .content {
     padding: 0.875rem;
+    padding-left: max(0.875rem, env(safe-area-inset-left));
+    padding-right: max(0.875rem, env(safe-area-inset-right));
+    padding-bottom: max(0.875rem, env(safe-area-inset-bottom));
   }
   .menuButton {
     display: flex;
@@ -205,7 +217,7 @@
   }
 }
 
-@media (min-width: 769px) {
+@media (min-width: 1025px) {
   .menuButton {
     display: none;
   }

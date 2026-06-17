@@ -4,18 +4,32 @@ import { useState, useEffect } from "react"
 import { Search, BookOpen, Loader2, CheckCircle, ArrowRight } from "lucide-react"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import Link from "next/link"
+import { formatText } from "@/lib/utils"
+
+type TeacherCourse = {
+  _id: string
+  title: string
+  description?: string
+  program?: string
+  classLevel?: string
+  semester?: string
+  enrollmentCount?: number
+  teacherId?: { name?: string }
+}
+
+type CourseEnrollment = {
+  courseId?: { _id?: string } | string
+}
 
 export default function TeacherBrowsePage() {
-  const [courses, setCourses] = useState<any[]>([])
-  const [enrollments, setEnrollments] = useState<any[]>([])
+  const [courses, setCourses] = useState<TeacherCourse[]>([])
+  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [enrollingMap, setEnrollingMap] = useState<Record<string, boolean>>({})
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
 
-  useEffect(() => { fetchData() }, [])
-
-  const fetchData = async () => {
+  async function fetchData() {
     try {
       const [cRes, eRes] = await Promise.all([
         fetch("/api/courses?teacherCatalog=true"),
@@ -31,6 +45,9 @@ export default function TeacherBrowsePage() {
       setLoading(false)
     }
   }
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { fetchData() }, [])
 
   const handleEnroll = async (courseId: string) => {
     setEnrollingMap(prev => ({ ...prev, [courseId]: true }))
@@ -55,7 +72,7 @@ export default function TeacherBrowsePage() {
   }
 
   const getEnrollment = (courseId: string) =>
-    enrollments.find(e => e.courseId?._id === courseId)
+    enrollments.find(e => (typeof e.courseId === "string" ? e.courseId : e.courseId?._id) === courseId)
 
   const filteredCourses = courses.filter(c =>
     c.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -143,7 +160,7 @@ export default function TeacherBrowsePage() {
 
                 {/* Card body */}
                 <div style={{ padding: '1.25rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.6rem', color: '#1e293b' }}>{course.title}</h3>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.6rem', color: '#1e293b' }}>{formatText(course.title)}</h3>
 
                   {/* Course metadata — Degree / Program / Semester */}
                   {(course.program || course.classLevel || course.semester) && (
@@ -151,26 +168,26 @@ export default function TeacherBrowsePage() {
                       {course.program && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem' }}>
                           <span style={{ color: '#94a3b8', fontWeight: 600, minWidth: '58px' }}>Degree:</span>
-                          <span style={{ fontWeight: 700, color: '#4f46e5', background: 'rgba(79,70,229,0.08)', padding: '0.1rem 0.5rem', borderRadius: '0.35rem' }}>{course.program}</span>
+                          <span style={{ fontWeight: 700, color: '#4f46e5', background: 'rgba(79,70,229,0.08)', padding: '0.1rem 0.5rem', borderRadius: '0.35rem' }}>{formatText(course.program)}</span>
                         </div>
                       )}
                       {course.classLevel && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem' }}>
                           <span style={{ color: '#94a3b8', fontWeight: 600, minWidth: '58px' }}>Program:</span>
-                          <span style={{ fontWeight: 700, color: '#059669', background: 'rgba(16,185,129,0.08)', padding: '0.1rem 0.5rem', borderRadius: '0.35rem' }}>{course.classLevel}</span>
+                          <span style={{ fontWeight: 700, color: '#059669', background: 'rgba(16,185,129,0.08)', padding: '0.1rem 0.5rem', borderRadius: '0.35rem' }}>{formatText(course.classLevel)}</span>
                         </div>
                       )}
                       {course.semester && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', fontSize: '0.78rem' }}>
                           <span style={{ color: '#94a3b8', fontWeight: 600, minWidth: '58px' }}>Semester:</span>
-                          <span style={{ fontWeight: 700, color: '#d97706', background: 'rgba(245,158,11,0.08)', padding: '0.1rem 0.5rem', borderRadius: '0.35rem' }}>{course.semester}</span>
+                          <span style={{ fontWeight: 700, color: '#d97706', background: 'rgba(245,158,11,0.08)', padding: '0.1rem 0.5rem', borderRadius: '0.35rem' }}>{formatText(course.semester)}</span>
                         </div>
                       )}
                     </div>
                   )}
 
                   <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', flex: 1, lineHeight: '1.5' }}>
-                    {course.description || "No description provided."}
+                    {course.description ? formatText(course.description) : "No description provided."}
                   </p>
 
                   {/* Instructor */}
@@ -178,14 +195,14 @@ export default function TeacherBrowsePage() {
                     <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 800, fontSize: '0.7rem', flexShrink: 0 }}>
                       {course.teacherId?.name?.[0]?.toUpperCase() || 'T'}
                     </div>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>{course.teacherId?.name || 'Instructor'}</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>{course.teacherId?.name ? formatText(course.teacherId.name) : 'Instructor'}</span>
                   </div>
 
                   {/* Action buttons */}
                   <div style={{ display: 'flex', gap: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
                     {isEnrolled ? (
                         <Link
-                          href={`/teacher/courses/`}
+                          href={`/teacher/courses/${course._id}`}
                           className="btn btn-primary"
                           style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.875rem', padding: '0.6rem 1rem' }}
                         >

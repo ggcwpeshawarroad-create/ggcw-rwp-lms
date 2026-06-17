@@ -4,7 +4,7 @@ import { BookOpen, Loader2, PlayCircle, Edit2, X, UserPlus, CheckCircle } from "
 import Link from "next/link"
 
 export default function TeacherCoursesPage() {
-  const [courses, setCourses] = useState([])
+  const [courses, setCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -70,11 +70,25 @@ export default function TeacherCoursesPage() {
   const fetchCourses = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/enrollments")
-      const data = await res.json()
-      if (res.ok) {
-        setCourses(data.map((enrollment: any) => enrollment.courseId).filter(Boolean))
+      const [assignedRes, enrolledRes] = await Promise.all([
+        fetch("/api/courses"),
+        fetch("/api/enrollments"),
+      ])
+      const assignedData = await assignedRes.json()
+      const enrolledData = await enrolledRes.json()
+
+      const merged = new Map<string, any>()
+      if (assignedRes.ok) {
+        assignedData.forEach((course: any) => merged.set(course._id, course))
       }
+      if (enrolledRes.ok) {
+        enrolledData.forEach((enrollment: any) => {
+          const course = enrollment.courseId
+          if (course?._id) merged.set(course._id, course)
+        })
+      }
+
+      setCourses(Array.from(merged.values()))
     } catch (err) {
       console.error("Failed to fetch courses")
     } finally {
@@ -231,7 +245,6 @@ export default function TeacherCoursesPage() {
                               Self-Enroll
                             </button>
                           )}
-                          {course.isOwner && (
                           <button 
                             onClick={() => togglePublish(course._id, course.published)}
                             className="btn" 
@@ -245,7 +258,6 @@ export default function TeacherCoursesPage() {
                           >
                             {course.published ? "Unpublish" : "Publish"}
                           </button>
-                          )}
                         </div>
                       </td>
                     </tr>

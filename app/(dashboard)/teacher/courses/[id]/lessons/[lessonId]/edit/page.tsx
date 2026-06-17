@@ -8,6 +8,27 @@ import {
 } from "lucide-react"
 import { Toast, ToastType } from "@/components/ui/Toast"
 
+function getYouTubeId(url: string) {
+  return url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1] || ""
+}
+
+function getVimeoId(url: string) {
+  return url.match(/vimeo\.com\/(?:video\/)?(\d+)/)?.[1] || ""
+}
+
+function getVideoEmbedUrl(url: string) {
+  const youTubeId = getYouTubeId(url)
+  if (youTubeId) return "https://www.youtube-nocookie.com/embed/" + youTubeId
+  const vimeoId = getVimeoId(url)
+  if (vimeoId) return "https://player.vimeo.com/video/" + vimeoId
+  return url
+}
+
+function getVideoThumbnailUrl(url: string) {
+  const youTubeId = getYouTubeId(url)
+  return youTubeId ? "https://img.youtube.com/vi/" + youTubeId + "/hqdefault.jpg" : ""
+}
+
 type UploadedFile = { name: string; url: string; size?: number }
 
 const LESSON_TYPES = [
@@ -357,6 +378,15 @@ export default function EditLessonPage() {
                   placeholder="https://youtube.com/watch?v=..."
                   style={{ width: '100%', padding: '0.85rem 1.25rem', borderRadius: '0.75rem', border: '1px solid #e2e8f0', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
                 />
+                {videoUrl && (
+                  <div style={{ marginTop: '1rem', borderRadius: '1rem', overflow: 'hidden', border: '1px solid #e2e8f0', background: '#0f172a' }}>
+                    {getVideoThumbnailUrl(videoUrl) ? (
+                      <img src={getVideoThumbnailUrl(videoUrl)} alt="Video thumbnail" style={{ width: '100%', display: 'block', aspectRatio: '16/9', objectFit: 'cover' }} />
+                    ) : (
+                      <iframe src={getVideoEmbedUrl(videoUrl)} title="Video preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen style={{ width: '100%', aspectRatio: '16/9', border: 0, display: 'block' }} />
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.6rem' }}>Lecture Notes / Description</label>

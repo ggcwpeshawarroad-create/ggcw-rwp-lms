@@ -1,6 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
+
+type AcademicClass = {
+  name: string
+  programs?: string[]
+  semesters?: string[]
+}
 import { UserPlus, Loader2, ArrowLeft, Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -11,7 +17,7 @@ export default function AddUserPage() {
   const [success, setSuccess] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
-  const [academicConfig, setAcademicConfig] = useState<any[]>([])
+  const [academicConfig, setAcademicConfig] = useState<AcademicClass[]>([])
 
   useEffect(() => {
     fetch("/api/academic-config").then(r => r.json()).then(data => setAcademicConfig(data.classes || []))
@@ -65,7 +71,7 @@ export default function AddUserPage() {
       } else {
         setError(data.error || "Failed to create user")
       }
-    } catch (err) {
+    } catch {
       setError("Something went wrong")
     } finally {
       setSubmitting(false)
@@ -89,7 +95,7 @@ export default function AddUserPage() {
         {error && <div style={{ color: '#ef4444', marginBottom: '1.5rem', background: 'rgba(239, 68, 68, 0.1)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(239, 68, 68, 0.2)' }}>{error}</div>}
         {success && <div style={{ color: '#10b981', marginBottom: '1.5rem', background: 'rgba(16, 185, 129, 0.1)', padding: '1rem', borderRadius: '0.75rem', border: '1px solid rgba(16, 185, 129, 0.2)' }}>{success}</div>}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <form onSubmit={handleSubmit} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Full Name</label>
@@ -106,7 +112,9 @@ export default function AddUserPage() {
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, color: '#444' }}>Email Address</label>
               <input 
                 type="email" 
+                name="new-user-email"
                 required
+                autoComplete="off"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 placeholder="your-email@example.com"
@@ -132,7 +140,9 @@ export default function AddUserPage() {
               <div style={{ position: 'relative' }}>
                 <input 
                   type={showPassword ? "text" : "password"}
+                  name="new-user-password"
                   required
+                  autoComplete="new-password"
                   value={formData.password}
                   onChange={(e) => setFormData({...formData, password: e.target.value})}
                   placeholder="•••••••••••••"

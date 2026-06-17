@@ -23,14 +23,20 @@ export async function GET(req: Request) {
       // Students can only see their own enrollments
       query.userId = session.user.id
     } else if (session.user.role === "TEACHER") {
-      // Teachers see: their own enrollments + student enrollments in their courses
+      // Teachers see their own enrollments, plus student enrollments only for assigned courses.
       const teacherCourses = await Course.find({ teacherId: session.user.id }, "_id")
       const courseIds = teacherCourses.map(c => c._id)
-      const teacherCourseId = courseId ? courseId : { $in: courseIds }
+      const ownsRequestedCourse = courseId && courseIds.some(c => c.toString() === courseId)
+
       query.$or = [
-        { userId: session.user.id }, // self-enrollments
-        { courseId: teacherCourseId, ...(userId ? { userId } : {}) } // students in their courses
+        { userId: session.user.id, ...(courseId ? { courseId } : {}) },
       ]
+
+      if (courseId) {
+        if (ownsRequestedCourse) query.$or.push({ courseId, ...(userId ? { userId } : {}) })
+      } else {
+        query.$or.push({ courseId: { $in: courseIds }, ...(userId ? { userId } : {}) })
+      }
     } else {
       // Admin can filter by userId if provided
       if (userId) query.userId = userId

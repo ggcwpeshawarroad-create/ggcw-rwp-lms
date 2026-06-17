@@ -350,3 +350,168 @@ button {
     min-width: 680px;
   }
 }
+
+/* PWA/mobile app shell refinements */
+html {
+  min-height: 100%;
+  background: var(--background);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100dvh;
+  overflow-y: auto;
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a, button, input, select, textarea {
+  touch-action: manipulation;
+}
+
+button, .btn {
+  min-height: 44px;
+}
+
+@media (max-width: 1024px) {
+  body {
+    background: #f8fafc;
+  }
+
+  .dashboard-content {
+    padding-inline: max(0.875rem, env(safe-area-inset-left)) max(0.875rem, env(safe-area-inset-right));
+  }
+
+  .dashboard-content-inner {
+    width: 100%;
+  }
+
+  .dashboard-content [style*="grid-template-columns"],
+  .dashboard-content .responsive-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dashboard-content [style*="max-width: 800px"],
+  .dashboard-content [style*="maxWidth: 800px"],
+  .dashboard-content [style*="max-width: 900px"],
+  .dashboard-content [style*="maxWidth: 900px"],
+  .dashboard-content [style*="max-width: 1100px"],
+  .dashboard-content [style*="maxWidth: 1100px"] {
+    max-width: 100% !important;
+  }
+
+  .dashboard-content input,
+  .dashboard-content select,
+  .dashboard-content textarea {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .glass-card {
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  .dashboard-content [style*="display: grid"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .dashboard-content [style*="width: 100%"] {
+    max-width: 100% !important;
+  }
+
+  .dashboard-content [style*="position: fixed"][style*="inset: 0"] {
+    align-items: flex-end !important;
+    padding: 0.75rem !important;
+  }
+
+  .dashboard-content [style*="maxWidth: 500px"],
+  .dashboard-content [style*="max-width: 500px"] {
+    max-width: 100% !important;
+  }
+
+  .dashboard-content table {
+    min-width: 640px;
+  }
+}
+
+/* Mobile/tablet: turn wide tables into vertical cards instead of horizontal scroll */
+@media (max-width: 1024px) {
+  .dashboard-content [style*="overflow-x: auto"] {
+    overflow-x: visible !important;
+  }
+
+  .dashboard-content table {
+    min-width: 0 !important;
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 0.875rem !important;
+    display: block !important;
+  }
+
+  .dashboard-content thead {
+    display: none !important;
+  }
+
+  .dashboard-content tbody {
+    display: grid !important;
+    gap: 0.875rem !important;
+    width: 100% !important;
+  }
+
+  .dashboard-content tr {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.65rem !important;
+    width: 100% !important;
+    padding: 1rem !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: 0.875rem !important;
+    background: white !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06) !important;
+  }
+
+  .dashboard-content td {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    text-align: left !important;
+    border: 0 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .dashboard-content td > div,
+  .dashboard-content td > span,
+  .dashboard-content td > a {
+    max-width: 100%;
+  }
+
+  .dashboard-content td:last-child > div,
+  .dashboard-content td:last-child {
+    justify-content: flex-start !important;
+    text-align: left !important;
+  }
+}
+
+/* Keep mobile/tablet pages vertically scrollable */
+html,
+body {
+  height: auto;
+  overflow-y: auto;
+}
+
+.dashboard-content,
+.dashboard-content-inner {
+  overflow-y: visible;
+}
+
+@media (max-width: 1024px) {
+  .dashboard-content,
+  .dashboard-content-inner {
+    min-height: auto;
+    overflow-y: visible !important;
+  }
+}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Lesson from "@/models/Lesson"
 import Course from "@/models/Course"
+import Enrollment from "@/models/Enrollment"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -21,7 +22,8 @@ export async function DELETE(
     const course = await Course.findById(id)
     if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
     if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
-       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const enrollment = await Enrollment.exists({ courseId: id, userId: session.user.id })
+      if (!enrollment) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     await Lesson.findByIdAndDelete(lessonId)
@@ -43,7 +45,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
     // Authorization: teachers can access their own courses, admins any
     if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const enrollment = await Enrollment.exists({ courseId: id, userId: session.user.id })
+      if (!enrollment) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     const lesson = await Lesson.findById(lessonId).lean()
     if (!lesson) return NextResponse.json({ error: "Lesson not found" }, { status: 404 })
@@ -81,7 +84,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const course = await Course.findById(id)
     if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
     if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const enrollment = await Enrollment.exists({ courseId: id, userId: session.user.id })
+      if (!enrollment) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     const updated = await Lesson.findByIdAndUpdate(lessonId, payload, { new: true })
     if (!updated) return NextResponse.json({ error: "Lesson not found" }, { status: 404 })

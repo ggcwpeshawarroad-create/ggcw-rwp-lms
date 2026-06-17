@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Chapter from "@/models/Chapter"
 import Course from "@/models/Course"
+import Enrollment from "@/models/Enrollment"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -38,7 +39,8 @@ export async function POST(
     const course = await Course.findById(id)
     if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
     if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
-       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const enrollment = await Enrollment.exists({ courseId: id, userId: session.user.id })
+      if (!enrollment) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const lastChapter = await Chapter.findOne({ courseId: id }).sort({ order: -1 })

@@ -48,9 +48,9 @@ export default function CourseBuilderPage() {
   const fetchCourseData = async () => {
     try {
       const [cRes, chRes, eRes] = await Promise.all([
-        fetch(`/api/courses/`),
-        fetch(`/api/courses//chapters`),
-        fetch(`/api/enrollments?courseId=`)
+        fetch(`/api/courses/${id}`),
+        fetch(`/api/courses/${id}/chapters`),
+        fetch(`/api/enrollments?courseId=${id}`)
       ])
       const cData = await cRes.json()
       const chData = await chRes.json()
@@ -58,11 +58,12 @@ export default function CourseBuilderPage() {
       if (cRes.ok) setCourse(cData)
 
       const enrolled = eRes.ok && Array.isArray(eData) && eData.length > 0
-      setIsEnrolled(enrolled)
+      const canAccessCourse = enrolled || !!cData?.isOwner
+      setIsEnrolled(canAccessCourse)
 
-      if (enrolled && chRes.ok) {
+      if (canAccessCourse && chRes.ok) {
         const chaptersWithLessons = await Promise.all(chData.map(async (ch: any) => {
-          const lRes = await fetch(`/api/courses//lessons?chapterId=`)
+          const lRes = await fetch(`/api/courses/${id}/lessons?chapterId=${ch._id}`)
           const lData = await lRes.json()
           return { ...ch, lessons: lRes.ok ? lData : [] }
         }))
@@ -137,7 +138,7 @@ export default function CourseBuilderPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
-          {course?.isOwner && (
+          {(course?.isOwner || isEnrolled) && (
           <button 
             onClick={() => router.push(`/teacher/courses/${id}/submissions`)}
             className="btn" 
@@ -149,7 +150,7 @@ export default function CourseBuilderPage() {
           <button className="btn" style={{ background: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--glass-border)' }}>
             <Eye size={18} /> Preview
           </button>
-          {course?.isOwner && (
+          {(course?.isOwner || isEnrolled) && (
           <button onClick={() => setShowAddChapter(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Plus size={18} /> Add Chapter
           </button>
@@ -184,7 +185,7 @@ export default function CourseBuilderPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  {course?.isOwner && (
+                  {(course?.isOwner || isEnrolled) && (
                   <button 
                     onClick={() => router.push(`/teacher/courses/${id}/lessons/new?chapterId=${chapter._id}`)}
                     style={{ padding: '0.5rem 1rem', borderRadius: '0.5rem', background: '#4f46e5', color: 'white', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', fontWeight: 700 }}
@@ -192,7 +193,7 @@ export default function CourseBuilderPage() {
                     <Plus size={14} /> Add Lesson
                   </button>
                   )}
-                  {course?.isOwner && (
+                  {(course?.isOwner || isEnrolled) && (
                   <button style={{ padding: '0.5rem', background: 'none', border: 'none', opacity: 0.4, cursor: 'pointer' }}>
                     <MoreVertical size={18} />
                   </button>
@@ -233,7 +234,7 @@ export default function CourseBuilderPage() {
                             </span>
                           </div>
                         </div>
-                        <div style={{ display: course?.isOwner ? 'flex' : 'none', gap: '0.4rem', alignItems: 'center' }}>
+                        <div style={{ display: (course?.isOwner || isEnrolled) ? 'flex' : 'none', gap: '0.4rem', alignItems: 'center' }}>
                           {deletingLessonId === lesson._id ? (
                             <>
                               <span style={{ fontSize: '0.78rem', color: '#64748b', whiteSpace: 'nowrap' }}>Delete?</span>

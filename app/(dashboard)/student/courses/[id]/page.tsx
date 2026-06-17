@@ -21,6 +21,27 @@ import {
   ShieldOff
 } from "lucide-react"
 
+function getYouTubeId(url: string) {
+  return url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/)?.[1] || ""
+}
+
+function getVimeoId(url: string) {
+  return url.match(/vimeo\.com\/(?:video\/)?(\d+)/)?.[1] || ""
+}
+
+function getVideoEmbedUrl(url: string) {
+  const youTubeId = getYouTubeId(url)
+  if (youTubeId) return "https://www.youtube-nocookie.com/embed/" + youTubeId
+  const vimeoId = getVimeoId(url)
+  if (vimeoId) return "https://player.vimeo.com/video/" + vimeoId
+  return url
+}
+
+function getVideoThumbnailUrl(url: string) {
+  const youTubeId = getYouTubeId(url)
+  return youTubeId ? "https://img.youtube.com/vi/" + youTubeId + "/hqdefault.jpg" : ""
+}
+
 export default function CoursePlayerPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -268,10 +289,13 @@ export default function CoursePlayerPage() {
             <div className="animate-slide-up">
               {selectedLesson.type === "LECTURE" && selectedLesson.videoUrl && (
                 <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', marginBottom: '2.5rem' }}>
-                   <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', flexDirection: 'column', gap: '1rem' }}>
-                      <Play size={64} fill="white" />
-                      <p style={{ opacity: 0.6 }}>Video Placeholder: {selectedLesson.videoUrl}</p>
-                   </div>
+                   <iframe
+                    src={getVideoEmbedUrl(selectedLesson.videoUrl)}
+                    title={selectedLesson.title || "Lesson video"}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                    style={{ width: '100%', height: '100%', border: 0, display: 'block' }}
+                  />
                 </div>
               )}
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Course from "@/models/Course"
+import Enrollment from "@/models/Enrollment"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -44,9 +45,15 @@ export async function PATCH(
       return NextResponse.json({ error: "Course not found" }, { status: 404 })
     }
 
-    // Check ownership: Teachers can only edit their own courses
+    // Teachers can fully edit assigned courses. Self-enrolled teachers may only publish/unpublish.
     if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      const enrollment = await Enrollment.exists({ courseId: id, userId: session.user.id })
+      const updateKeys = Object.keys(updates)
+      const onlyPublishing = updateKeys.length === 1 && updateKeys[0] === "published"
+
+      if (!enrollment || !onlyPublishing) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
     }
 
     const updatedCourse = await Course.findByIdAndUpdate(
