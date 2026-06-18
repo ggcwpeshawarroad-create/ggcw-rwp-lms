@@ -84,7 +84,7 @@ export async function POST(req: Request) {
       program: program || "",
       semester: semester || "",
       teacherId: providedTeacherId || session.user.id,
-      published: false,
+      published: true,
     })
 
     // Log the course creation
