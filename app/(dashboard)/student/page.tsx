@@ -4,6 +4,7 @@ import { PlayCircle, Trophy, BookOpen, Clock, Star, Calendar, ArrowRight } from 
 import Link from "next/link"
 import connectDB from "@/lib/db"
 import Enrollment from "@/models/Enrollment"
+import "@/models/Course"
 
 export default async function StudentPage() {
   const session = await getServerSession(authOptions)
@@ -12,16 +13,20 @@ export default async function StudentPage() {
   let enrollmentCount = 0
 
   if (session?.user?.id) {
-    await connectDB()
-    const enrollments = await Enrollment.find({ userId: session.user.id })
-      .populate("courseId", "title description program classLevel semester teacherId")
-      .sort({ createdAt: -1 })
-      .lean()
+    try {
+      await connectDB()
+      const enrollments = await Enrollment.find({ userId: session.user.id })
+        .populate("courseId", "title description program classLevel semester teacherId")
+        .sort({ createdAt: -1 })
+        .lean()
 
-    enrolledCourses = enrollments
-      .map((e: any) => e.courseId)
-      .filter(Boolean)
-    enrollmentCount = enrolledCourses.length
+      enrolledCourses = enrollments
+        .map((e: any) => e.courseId)
+        .filter(Boolean)
+      enrollmentCount = enrolledCourses.length
+    } catch (error) {
+      console.error("Failed to load student dashboard:", error)
+    }
   }
 
   const stats = [
