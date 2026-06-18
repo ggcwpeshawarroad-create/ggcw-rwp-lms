@@ -23,19 +23,23 @@ export async function GET(req: Request) {
       // Students can only see their own enrollments
       query.userId = session.user.id
     } else if (session.user.role === "TEACHER") {
-      // Teachers see their own enrollments, plus student enrollments only for assigned courses.
+      // Teachers see their own enrollments, plus student enrollments for courses they own or are enrolled in.
       const teacherCourses = await Course.find({ teacherId: session.user.id }, "_id")
-      const courseIds = teacherCourses.map(c => c._id)
-      const ownsRequestedCourse = courseId && courseIds.some(c => c.toString() === courseId)
+      const teacherEnrollments = await Enrollment.find({ userId: session.user.id }, "courseId")
+      const accessibleCourseIds = Array.from(new Set([
+        ...teacherCourses.map(c => c._id.toString()),
+        ...teacherEnrollments.map(e => e.courseId.toString()),
+      ]))
+      const canAccessRequestedCourse = courseId && accessibleCourseIds.includes(courseId)
 
       query.$or = [
         { userId: session.user.id, ...(courseId ? { courseId } : {}) },
       ]
 
       if (courseId) {
-        if (ownsRequestedCourse) query.$or.push({ courseId, ...(userId ? { userId } : {}) })
+        if (canAccessRequestedCourse) query.$or.push({ courseId, ...(userId ? { userId } : {}) })
       } else {
-        query.$or.push({ courseId: { $in: courseIds }, ...(userId ? { userId } : {}) })
+        query.$or.push({ courseId: { $in: accessibleCourseIds }, ...(userId ? { userId } : {}) })
       }
     } else {
       // Admin can filter by userId if provided
@@ -43,7 +47,7 @@ export async function GET(req: Request) {
     }
 
     const enrollments = await Enrollment.find(query)
-      .populate("userId", "name email registrationNumber classLevel program semester")
+      .populate("userId", "name email registrationNumber classLevel program semester role")
       .populate("courseId", "title description program classLevel semester published teacherId")
 
     const enrollmentsWithOwnership = enrollments.map((enrollment: any) => {
@@ -101,9 +105,14 @@ export async function POST(req: Request) {
     if (session.user.role === "STUDENT" && !course.published) {
       return NextResponse.json({ error: "Course not available" }, { status: 400 })
     }
-    // If a teacher is enrolling someone *else*, they must own that course
-    if (session.user.role === "TEACHER" && bodyUserId && course.teacherId.toString() !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    // If a teacher is enrolling someone else, they must own or be enrolled in that course.
+    if (session.user.role === "TEACHER" && bodyUserId) {
+      const isOwner = course.teacherId.toString() === session.user.id
+      const isEnrolledTeacher = await Enrollment.exists({ courseId, userId: session.user.id })
+
+      if (!isOwner && !isEnrolledTeacher) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
     }
 
     // 2. Check existing enrollment

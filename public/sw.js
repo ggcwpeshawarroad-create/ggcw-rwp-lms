@@ -1,5 +1,5 @@
-const CACHE_NAME = "lms-pwa-v1";
-const APP_SHELL = ["/", "/login", "/logo.png", "/manifest.json"];
+const CACHE_NAME = "lms-pwa-v2";
+const APP_SHELL = ["/logo.png", "/manifest.json"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()));
@@ -16,7 +16,19 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
-    event.respondWith(fetch(request).catch(() => caches.match("/")));
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  const isDynamicRequest =
+    url.pathname.startsWith("/api") ||
+    url.pathname.startsWith("/admin") ||
+    url.pathname.startsWith("/teacher") ||
+    url.pathname.startsWith("/student") ||
+    url.pathname.startsWith("/_next");
+
+  if (isDynamicRequest) {
+    event.respondWith(fetch(request));
     return;
   }
 

@@ -84,7 +84,12 @@
   font-size: 1rem;
 }
 
-.logoutButton:hover {
+.logoutButton:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.logoutButton:hover:not(:disabled) {
   background: #ef4444;
   color: white;
 }

@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { 
   LayoutDashboard, 
@@ -32,7 +32,20 @@ export default function DashboardLayout({
   userName?: string
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const pathname = usePathname()
+  const router = useRouter()
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return
+
+    setIsLoggingOut(true)
+    setIsSidebarOpen(false)
+
+    await signOut({ redirect: false, callbackUrl: "/" })
+    router.replace("/")
+    router.refresh()
+  }
 
   const navItems = {
     ADMIN: [
@@ -122,11 +135,12 @@ export default function DashboardLayout({
 
         <div className={styles.sidebarFooter}>
           <button 
-            onClick={() => signOut({ callbackUrl: "/" })} 
+            onClick={handleLogout} 
             className={styles.logoutButton}
+            disabled={isLoggingOut}
           >
             <LogOut size={20} />
-            <span>Logout</span>
+            <span>{isLoggingOut ? "Logging out..." : "Logout"}</span>
           </button>
         </div>
       </aside>

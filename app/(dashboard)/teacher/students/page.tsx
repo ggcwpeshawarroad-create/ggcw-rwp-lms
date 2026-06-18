@@ -37,8 +37,22 @@ export default function TeacherStudentsPage() {
       const cData = await cRes.json()
       const uData = await uRes.json()
 
-      if (eRes.ok) setEnrollments(eData)
-      if (cRes.ok) setCourses(cData)
+      if (eRes.ok) {
+        setEnrollments(eData.filter((enrollment: any) => enrollment.userId?.role === "STUDENT"))
+      }
+
+      const mergedCourses = new Map<string, any>()
+      if (cRes.ok) {
+        cData.forEach((course: any) => mergedCourses.set(course._id, course))
+      }
+      if (eRes.ok) {
+        eData.forEach((enrollment: any) => {
+          const course = enrollment.courseId
+          if (course?._id) mergedCourses.set(course._id, course)
+        })
+      }
+      setCourses(Array.from(mergedCourses.values()))
+
       if (uRes.ok) setStudents(uData.users.filter((u: any) => u.role === "STUDENT"))
     } catch (err) {
       console.error("Failed to fetch data")
@@ -249,7 +263,7 @@ export default function TeacherStudentsPage() {
                   onChange={(e) => setEnrollForm({...enrollForm, courseId: e.target.value})}
                   style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', background: '#f8fafc', border: '1px solid var(--glass-border)', outline: 'none' }}
                 >
-                  <option value="">Choose a course...</option>
+                  <option value="">{courses.length === 0 ? "No courses available" : "Choose a course..."}</option>
                   {courses.map(c => (
                     <option key={c._id} value={c._id} className="capitalize">{c.title}</option>
                   ))}
