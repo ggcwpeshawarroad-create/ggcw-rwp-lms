@@ -99,7 +99,7 @@ export default function CourseBuilderPage() {
   }
 
   const handleDeleteLesson = async (lessonId: string) => {
-    await fetch(`/api/courses/${id}/lessons/${lessonId}`, { method: "DELETE" })
+    await fetch("/api/courses/" + id + "/lessons/" + lessonId, { method: "DELETE" })
     setDeletingLessonId(null)
     fetchCourseData()
     setToast({ message: "Lesson removed", type: "success" })
@@ -194,7 +194,7 @@ export default function CourseBuilderPage() {
                   </button>
                   )}
                   {(course?.isOwner || isEnrolled) && (
-                  <button style={{ padding: '0.5rem', background: 'none', border: 'none', opacity: 0.4, cursor: 'pointer' }}>
+                  <button type="button" onClick={() => router.push("/teacher/courses/" + id + "/chapters/" + chapter._id)} title="Edit chapter" style={{ padding: '0.5rem', background: 'none', border: 'none', opacity: 0.65, cursor: 'pointer' }}>
                     <MoreVertical size={18} />
                   </button>
                   )}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Course from "@/models/Course"
+import User from "@/models/User"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -15,15 +16,12 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const teacherId = searchParams.get("teacherId")
     const browse = searchParams.get("browse")
-    const teacherCatalog = searchParams.get("teacherCatalog")
 
     await connectDB()
 
     let query: any = {}
     if (browse === "true") {
       query = { published: true }
-    } else if (teacherCatalog === "true" && session.user.role === "TEACHER") {
-      query = {}
     } else if (session.user.role === "TEACHER") {
       query = { teacherId: session.user.id }
     } else if (session.user.role === "ADMIN") {
@@ -40,9 +38,11 @@ export async function GET(req: Request) {
 
     // Add enrollment count to each course
     const Enrollment = (await import("@/models/Enrollment")).default
+    const studentIds = await User.find({ role: "STUDENT" }, "_id").lean()
+    const studentUserIds = studentIds.map((student: any) => student._id)
     const coursesWithCounts = await Promise.all(
       courses.map(async (course) => {
-        const enrollmentCount = await Enrollment.countDocuments({ courseId: course._id })
+        const enrollmentCount = await Enrollment.countDocuments({ courseId: course._id, userId: { $in: studentUserIds } })
         const isOwner = course.teacherId?._id?.toString() === session.user.id || course.teacherId?.toString() === session.user.id
         return {
           ...course.toObject(),

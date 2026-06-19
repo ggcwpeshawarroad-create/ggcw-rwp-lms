@@ -1,6 +1,6 @@
 "use client"
 import { useState, useEffect } from "react"
-import { BookOpen, Loader2, PlayCircle, Edit2, X, UserPlus, CheckCircle } from "lucide-react"
+import { BookOpen, Loader2, PlayCircle, Edit2, X } from "lucide-react"
 import Link from "next/link"
 
 export default function TeacherCoursesPage() {
@@ -8,8 +8,6 @@ export default function TeacherCoursesPage() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set())
-  const [enrollingId, setEnrollingId] = useState<string | null>(null)
   const [academicConfig, setAcademicConfig] = useState<any[]>([])
   const [formData, setFormData] = useState({
     title: "",
@@ -37,58 +35,18 @@ export default function TeacherCoursesPage() {
 
   useEffect(() => {
     fetchCourses()
-    fetchMyEnrollments()
     fetch("/api/academic-config").then(r => r.json()).then(data => setAcademicConfig(data.classes || []))
   }, [])
-
-  const fetchMyEnrollments = async () => {
-    try {
-      const res = await fetch("/api/enrollments")
-      const data = await res.json()
-      if (res.ok) {
-        const ids = new Set<string>(data.map((e: any) => e.courseId?._id || e.courseId))
-        setEnrolledIds(ids)
-      }
-    } catch {}
-  }
-
-  const selfEnroll = async (courseId: string) => {
-    setEnrollingId(courseId)
-    try {
-      const res = await fetch("/api/enrollments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId }),
-      })
-      if (res.ok) {
-        setEnrolledIds(prev => new Set([...prev, courseId]))
-      }
-    } catch {}
-    setEnrollingId(null)
-  }
 
   const fetchCourses = async () => {
     setLoading(true)
     try {
-      const [assignedRes, enrolledRes] = await Promise.all([
-        fetch("/api/courses"),
-        fetch("/api/enrollments"),
-      ])
-      const assignedData = await assignedRes.json()
-      const enrolledData = await enrolledRes.json()
+      const res = await fetch("/api/courses")
+      const data = await res.json()
 
-      const merged = new Map<string, any>()
-      if (assignedRes.ok) {
-        assignedData.forEach((course: any) => merged.set(course._id, course))
+      if (res.ok) {
+        setCourses(data)
       }
-      if (enrolledRes.ok) {
-        enrolledData.forEach((enrollment: any) => {
-          const course = enrollment.courseId
-          if (course?._id) merged.set(course._id, course)
-        })
-      }
-
-      setCourses(Array.from(merged.values()))
     } catch (err) {
       console.error("Failed to fetch courses")
     } finally {
@@ -229,21 +187,6 @@ export default function TeacherCoursesPage() {
                           >
                             <Edit2 size={18} />
                           </button>
-                          )}
-                          {enrolledIds.has(course._id) ? (
-                            <span style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '0.5rem', background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid rgba(16,185,129,0.3)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600 }}>
-                              <CheckCircle size={14} /> Enrolled
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => selfEnroll(course._id)}
-                              disabled={enrollingId === course._id}
-                              title="Enroll Yourself"
-                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', borderRadius: '0.5rem', background: 'rgba(79,70,229,0.08)', color: 'var(--primary)', border: '1px solid rgba(79,70,229,0.2)', display: 'inline-flex', alignItems: 'center', gap: '0.3rem', fontWeight: 600, cursor: 'pointer' }}
-                            >
-                              {enrollingId === course._id ? <Loader2 size={14} className="animate-spin" /> : <UserPlus size={14} />}
-                              Self-Enroll
-                            </button>
                           )}
                           <button 
                             onClick={() => togglePublish(course._id, course.published)}

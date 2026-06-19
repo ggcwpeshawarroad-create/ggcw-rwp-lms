@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { writeFile, mkdir } from "fs/promises"
-import path from "path"
-import { existsSync } from "fs"
+import connectDB from "@/lib/db"
+import Upload from "@/models/Upload"
 
 export async function POST(req: Request) {
   try {
@@ -19,18 +18,18 @@ export async function POST(req: Request) {
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Save to /public/uploads
-    const uploadsDir = path.join(process.cwd(), "public", "uploads")
-    if (!existsSync(uploadsDir)) {
-      await mkdir(uploadsDir, { recursive: true })
-    }
+    await connectDB()
 
-    const ext = path.extname(file.name)
-    const safeName = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`
-    const filePath = path.join(uploadsDir, safeName)
-    await writeFile(filePath, buffer)
+    const upload = await Upload.create({
+      name: file.name,
+      contentType: file.type || "application/octet-stream",
+      size: file.size,
+      data: buffer,
+      uploadedBy: session.user.id,
+    })
 
-    const url = `/uploads/${safeName}`
+    const encodedName = encodeURIComponent(file.name)
+    const url = "/api/files/" + upload._id.toString() + "/" + encodedName
     return NextResponse.json({ url, name: file.name, size: file.size })
   } catch (error) {
     console.error("Upload error:", error)

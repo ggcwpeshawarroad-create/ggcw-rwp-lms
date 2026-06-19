@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, BookOpen, Loader2, CheckCircle, ArrowRight } from "lucide-react"
-import { Toast, ToastType } from "@/components/ui/Toast"
+import { Search, BookOpen, Loader2, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { formatText } from "@/lib/utils"
 
@@ -17,28 +16,16 @@ type TeacherCourse = {
   teacherId?: { name?: string }
 }
 
-type CourseEnrollment = {
-  courseId?: { _id?: string } | string
-}
-
 export default function TeacherBrowsePage() {
   const [courses, setCourses] = useState<TeacherCourse[]>([])
-  const [enrollments, setEnrollments] = useState<CourseEnrollment[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [enrollingMap, setEnrollingMap] = useState<Record<string, boolean>>({})
-  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
 
   async function fetchData() {
     try {
-      const [cRes, eRes] = await Promise.all([
-        fetch("/api/courses?teacherCatalog=true"),
-        fetch("/api/enrollments")
-      ])
-      const cData = await cRes.json()
-      const eData = await eRes.json()
-      if (cRes.ok) setCourses(cData)
-      if (eRes.ok) setEnrollments(eData)
+      const res = await fetch("/api/courses")
+      const data = await res.json()
+      if (res.ok) setCourses(data)
     } catch {
       console.error("Failed to fetch data")
     } finally {
@@ -48,31 +35,6 @@ export default function TeacherBrowsePage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchData() }, [])
-
-  const handleEnroll = async (courseId: string) => {
-    setEnrollingMap(prev => ({ ...prev, [courseId]: true }))
-    try {
-      const res = await fetch("/api/enrollments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId })   // userId derived from session server-side
-      })
-      if (res.ok) {
-        await fetchData()
-        setToast({ message: "Enrolled successfully! This course now appears in My Courses.", type: "success" })
-      } else {
-        const d = await res.json()
-        setToast({ message: d.error || "Enrollment failed", type: "error" })
-      }
-    } catch {
-      setToast({ message: "Network error. Please try again.", type: "error" })
-    } finally {
-      setEnrollingMap(prev => ({ ...prev, [courseId]: false }))
-    }
-  }
-
-  const getEnrollment = (courseId: string) =>
-    enrollments.find(e => (typeof e.courseId === "string" ? e.courseId : e.courseId?._id) === courseId)
 
   const filteredCourses = courses.filter(c =>
     c.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -96,7 +58,7 @@ export default function TeacherBrowsePage() {
         <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.5rem' }}>
           Courses
         </h2>
-        <p style={{ opacity: 0.6 }}>Enroll yourself in admin-created courses before entering them</p>
+        <p style={{ opacity: 0.6 }}>View courses assigned to you by the super admin</p>
       </div>
 
       {/* Search */}
@@ -122,11 +84,7 @@ export default function TeacherBrowsePage() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
-          {filteredCourses.map((course, idx) => {
-            const enrollment = getEnrollment(course._id)
-            const isEnrolled = !!enrollment
-
-            return (
+          {filteredCourses.map((course, idx) => (
               <div
                 key={course._id}
                 className="glass-card"
@@ -151,11 +109,6 @@ export default function TeacherBrowsePage() {
                   <div style={{ position: 'absolute', bottom: '0.75rem', left: '1rem', background: 'rgba(0,0,0,0.35)', color: 'white', padding: '0.2rem 0.65rem', borderRadius: '0.5rem', fontSize: '0.72rem', fontWeight: 700, backdropFilter: 'blur(4px)' }}>
                     {course.enrollmentCount || 0} Learners
                   </div>
-                  {isEnrolled && (
-                    <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: '#10b981', color: 'white', padding: '0.25rem 0.65rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <CheckCircle size={12} /> Enrolled
-                    </div>
-                  )}
                 </div>
 
                 {/* Card body */}
@@ -198,40 +151,21 @@ export default function TeacherBrowsePage() {
                     <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>{course.teacherId?.name ? formatText(course.teacherId.name) : 'Instructor'}</span>
                   </div>
 
-                  {/* Action buttons */}
                   <div style={{ display: 'flex', gap: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
-                    {isEnrolled ? (
-                        <Link
-                          href={`/teacher/courses/${course._id}`}
-                          className="btn btn-primary"
-                          style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.875rem', padding: '0.6rem 1rem' }}
-                        >
-                          Enter Course <ArrowRight size={15} />
-                        </Link>
-                    ) : (
-                      <button
-                        onClick={() => handleEnroll(course._id)}
-                        disabled={enrollingMap[course._id]}
-                        className="btn btn-primary"
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.6rem 1rem', fontSize: '0.875rem' }}
-                      >
-                        {enrollingMap[course._id]
-                          ? <><Loader2 className="animate-spin" size={16} /> Enrolling...</>
-                          : <><BookOpen size={14} /> Self-Enroll</>
-                        }
-                      </button>
-                    )}
+                    <Link
+                      href={`/teacher/courses/`}
+                      className="btn btn-primary"
+                      style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.875rem', padding: '0.6rem 1rem' }}
+                    >
+                      Enter Course <ArrowRight size={15} />
+                    </Link>
                   </div>
                 </div>
               </div>
-            )
-          })}
+          ))}
         </div>
       )}
 
-      {toast && (
-        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
-      )}
     </div>
   )
 }

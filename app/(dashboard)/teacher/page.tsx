@@ -4,6 +4,7 @@ import { PlusCircle, BookOpen, Users, ClipboardList, TrendingUp, ArrowRight } fr
 import Link from "next/link"
 import connectDB from "@/lib/db"
 import Course from "@/models/Course"
+import User from "@/models/User"
 import Enrollment from "@/models/Enrollment"
 
 export default async function TeacherPage() {
@@ -15,18 +16,18 @@ export default async function TeacherPage() {
 
   if (session?.user?.id) {
     await connectDB()
-    const rawEnrollments = await Enrollment.find({ userId: session.user.id })
+    const rawCourses = await Course.find({ teacherId: session.user.id })
       .sort({ createdAt: -1 })
-      .populate("courseId", "title description program classLevel semester published teacherId")
       .lean()
-    const rawCourses = rawEnrollments.map((enrollment: any) => enrollment.courseId).filter(Boolean)
 
     courseCount = rawCourses.length
+    const studentIds = await User.find({ role: "STUDENT" }, "_id").lean()
+    const studentUserIds = studentIds.map((student: any) => student._id)
 
     // Add enrollment count to each course
     courses = await Promise.all(
       rawCourses.map(async (c: any) => {
-        const count = await Enrollment.countDocuments({ courseId: c._id })
+        const count = await Enrollment.countDocuments({ courseId: c._id, userId: { $in: studentUserIds } })
         totalStudents += count
         return { ...c, enrollmentCount: count }
       })

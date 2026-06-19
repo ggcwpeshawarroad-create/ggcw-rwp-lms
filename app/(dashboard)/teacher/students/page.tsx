@@ -41,17 +41,7 @@ export default function TeacherStudentsPage() {
         setEnrollments(eData.filter((enrollment: any) => enrollment.userId?.role === "STUDENT"))
       }
 
-      const mergedCourses = new Map<string, any>()
-      if (cRes.ok) {
-        cData.forEach((course: any) => mergedCourses.set(course._id, course))
-      }
-      if (eRes.ok) {
-        eData.forEach((enrollment: any) => {
-          const course = enrollment.courseId
-          if (course?._id) mergedCourses.set(course._id, course)
-        })
-      }
-      setCourses(Array.from(mergedCourses.values()))
+      if (cRes.ok) setCourses(cData)
 
       if (uRes.ok) setStudents(uData.users.filter((u: any) => u.role === "STUDENT"))
     } catch (err) {

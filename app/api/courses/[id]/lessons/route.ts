@@ -2,7 +2,6 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Lesson, { ILesson } from "@/models/Lesson"
 import Course from "@/models/Course"
-import Enrollment from "@/models/Enrollment"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -63,8 +62,7 @@ export async function POST(
     const course = await Course.findById(id)
     if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
     if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
-      const enrollment = await Enrollment.exists({ courseId: id, userId: session.user.id })
-      if (!enrollment) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const lastLesson = await Lesson.findOne({ chapterId: body.chapterId }).sort({ order: -1 })

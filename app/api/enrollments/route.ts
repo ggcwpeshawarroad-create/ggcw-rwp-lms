@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Enrollment from "@/models/Enrollment"
 import Course from "@/models/Course"
+import User from "@/models/User"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -23,23 +24,16 @@ export async function GET(req: Request) {
       // Students can only see their own enrollments
       query.userId = session.user.id
     } else if (session.user.role === "TEACHER") {
-      // Teachers see their own enrollments, plus student enrollments for courses they own or are enrolled in.
+      // Teachers see student enrollments only for courses assigned to them.
       const teacherCourses = await Course.find({ teacherId: session.user.id }, "_id")
-      const teacherEnrollments = await Enrollment.find({ userId: session.user.id }, "courseId")
-      const accessibleCourseIds = Array.from(new Set([
-        ...teacherCourses.map(c => c._id.toString()),
-        ...teacherEnrollments.map(e => e.courseId.toString()),
-      ]))
-      const canAccessRequestedCourse = courseId && accessibleCourseIds.includes(courseId)
-
-      query.$or = [
-        { userId: session.user.id, ...(courseId ? { courseId } : {}) },
-      ]
+      const assignedCourseIds = teacherCourses.map(c => c._id.toString())
 
       if (courseId) {
-        if (canAccessRequestedCourse) query.$or.push({ courseId, ...(userId ? { userId } : {}) })
+        query = assignedCourseIds.includes(courseId)
+          ? { courseId, ...(userId ? { userId } : {}) }
+          : { _id: null }
       } else {
-        query.$or.push({ courseId: { $in: accessibleCourseIds }, ...(userId ? { userId } : {}) })
+        query = { courseId: { $in: assignedCourseIds }, ...(userId ? { userId } : {}) }
       }
     } else {
       // Admin can filter by userId if provided
@@ -58,7 +52,11 @@ export async function GET(req: Request) {
       return item
     })
 
-    return NextResponse.json(enrollmentsWithOwnership)
+    const visibleEnrollments = session.user.role === "STUDENT"
+      ? enrollmentsWithOwnership
+      : enrollmentsWithOwnership.filter((item: any) => item.userId?.role === "STUDENT")
+
+    return NextResponse.json(visibleEnrollments)
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch enrollments" }, { status: 500 })
   }
@@ -78,21 +76,14 @@ export async function POST(req: Request) {
 
     await connectDB()
 
-    // Resolve the effective userId
+    // Resolve the student being enrolled. Enrollment records are for students only.
     let userId: string
     if (session.user.role === "STUDENT") {
-      // Students always enroll themselves — ignore any userId in body
       userId = session.user.id
-    } else if (session.user.role === "TEACHER") {
-      if (bodyUserId) {
-        // Teacher enrolling someone else — only allowed for their own course (enforced below)
-        userId = bodyUserId
-      } else {
-        // Teacher self-enrolling
-        userId = session.user.id
+    } else if (session.user.role === "TEACHER" || session.user.role === "ADMIN") {
+      if (!bodyUserId) {
+        return NextResponse.json({ error: "Missing student userId" }, { status: 400 })
       }
-    } else if (session.user.role === "ADMIN") {
-      if (!bodyUserId) return NextResponse.json({ error: "Missing userId" }, { status: 400 })
       userId = bodyUserId
     } else {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -105,14 +96,17 @@ export async function POST(req: Request) {
     if (session.user.role === "STUDENT" && !course.published) {
       return NextResponse.json({ error: "Course not available" }, { status: 400 })
     }
-    // If a teacher is enrolling someone else, they must own or be enrolled in that course.
-    if (session.user.role === "TEACHER" && bodyUserId) {
-      const isOwner = course.teacherId.toString() === session.user.id
-      const isEnrolledTeacher = await Enrollment.exists({ courseId, userId: session.user.id })
 
-      if (!isOwner && !isEnrolledTeacher) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-      }
+    const targetUser = await User.findById(userId, "role")
+    if (!targetUser) {
+      return NextResponse.json({ error: "Student not found" }, { status: 404 })
+    }
+    if (targetUser.role !== "STUDENT") {
+      return NextResponse.json({ error: "Only students can be enrolled in courses" }, { status: 400 })
+    }
+
+    if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
+      return NextResponse.json({ error: "Teachers can only enroll students in their assigned courses" }, { status: 401 })
     }
 
     // 2. Check existing enrollment
