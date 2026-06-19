@@ -74,6 +74,7 @@ export default function DashboardLayout({
 
   const pathnameToTitle = (path: string) => {
     if (path.startsWith("/teacher/courses/") && path !== "/teacher/courses") return "Course Builder"
+    if (path.startsWith("/student/courses/") && path !== "/student/courses") return "Course Player"
 
     const titles: Record<string, string> = {
       "/admin": "Admin Overview",
@@ -171,8 +172,8 @@ export default function DashboardLayout({
             </div>
           </div>
         </header>
-        <section className={`${styles.content} dashboard-content`}>
-          <div className="animate-fade-in dashboard-content-inner">
+        <section className={`${styles.content} dashboard-content dashboard-role-${role.toLowerCase()}`}>
+          <div className={`animate-fade-in dashboard-content-inner dashboard-page-${pathname.split("/").filter(Boolean).join("-") || "home"}`}>
             {['/admin', '/teacher', '/student'].includes(pathname) && (
               <div className="dashboard-school-banner" style={{ 
                 display: 'flex', 
