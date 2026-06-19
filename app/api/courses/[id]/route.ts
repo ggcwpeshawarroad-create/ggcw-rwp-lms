@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Course from "@/models/Course"
+import User from "@/models/User"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -12,7 +13,7 @@ export async function GET(
     const { id } = await params
     const session = await getServerSession(authOptions)
     await connectDB()
-    const course = await Course.findById(id).populate("teacherId", "name email")
+    const course = await Course.findById(id).populate("teacherId", "name email role")
     if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
     const courseData = course.toObject()
     courseData.isOwner = !!session?.user?.id && (course.teacherId?._id?.toString() === session.user.id || course.teacherId?.toString() === session.user.id)
@@ -44,15 +45,29 @@ export async function PATCH(
       return NextResponse.json({ error: "Course not found" }, { status: 404 })
     }
 
-    if (session.user.role === "TEACHER" && course.teacherId.toString() !== session.user.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    if (session.user.role === "TEACHER") {
+      const assignedUser = course.teacherId ? await User.findById(course.teacherId, "role") : null
+      const isAssignedToTeacher = assignedUser?.role === "TEACHER"
+      const isOwner = course.teacherId?.toString() === session.user.id
+      const updateKeys = Object.keys(updates)
+      const isClaimRequest = updateKeys.length === 1 && (updates.teacherId === session.user.id || updates.teacherId === "self")
+
+      if (!isOwner) {
+        if (!isClaimRequest || isAssignedToTeacher) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+        }
+      }
     }
+
+    const normalizedUpdates = session.user.role === "TEACHER" && updates.teacherId === "self"
+      ? { ...updates, teacherId: session.user.id }
+      : updates
 
     const updatedCourse = await Course.findByIdAndUpdate(
       id,
       { 
         $set: {
-          ...updates,
+          ...normalizedUpdates,
           classLevel: updates.classLevel ?? course.classLevel ?? "",
           program: updates.program ?? course.program ?? "",
           semester: updates.semester ?? course.semester ?? ""

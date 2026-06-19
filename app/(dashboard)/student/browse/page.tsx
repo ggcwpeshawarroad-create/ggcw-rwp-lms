@@ -60,7 +60,7 @@ export default function StudentBrowsePage() {
 
   const filteredCourses = courses.filter(c =>
     c.title?.toLowerCase().includes(search.toLowerCase()) ||
-    c.teacherId?.name?.toLowerCase().includes(search.toLowerCase())
+    (c.teacherId?.role === "TEACHER" && c.teacherId?.name?.toLowerCase().includes(search.toLowerCase()))
   )
 
   // Gradient palette for cards
@@ -174,12 +174,16 @@ export default function StudentBrowsePage() {
                     {course.description ? formatText(course.description) : "No description provided."}
                   </p>
 
-                  {/* Instructor */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-                    <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 800, fontSize: '0.7rem', flexShrink: 0 }}>
-                      {course.teacherId?.name?.[0]?.toUpperCase() || 'T'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem', padding: '0.65rem 0.75rem', background: '#f8fafc', border: '1px solid #f1f5f9', borderRadius: '0.6rem' }}>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: course.teacherId?.role === "TEACHER" ? 'rgba(1,65,28,0.08)' : '#eef2f7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: course.teacherId?.role === "TEACHER" ? 'var(--primary)' : '#94a3b8', fontWeight: 800, fontSize: '0.7rem', flexShrink: 0 }}>
+                      {course.teacherId?.role === "TEACHER" && course.teacherId?.name ? course.teacherId.name[0]?.toUpperCase() : "-"}
                     </div>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>{course.teacherId?.name ? formatText(course.teacherId.name) : 'Instructor'}</span>
+                    <div style={{ minWidth: 0 }}>
+                      <span style={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Instructor</span>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 700, color: course.teacherId?.role === "TEACHER" ? '#475569' : '#94a3b8' }}>
+                        {course.teacherId?.role === "TEACHER" && course.teacherId?.name ? formatText(course.teacherId.name) : "Not assigned yet"}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Action buttons */}

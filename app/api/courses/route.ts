@@ -16,12 +16,24 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const teacherId = searchParams.get("teacherId")
     const browse = searchParams.get("browse")
+    const teacherCatalog = searchParams.get("teacherCatalog")
 
     await connectDB()
 
     let query: any = {}
     if (browse === "true") {
       query = { published: true }
+    } else if (teacherCatalog === "true" && session.user.role === "TEACHER") {
+      const teacherUsers = await User.find({ role: "TEACHER" }, "_id").lean()
+      const teacherUserIds = teacherUsers.map((teacher: any) => teacher._id)
+      query = {
+        $or: [
+          { teacherId: session.user.id },
+          { teacherId: { $exists: false } },
+          { teacherId: null },
+          { teacherId: { $nin: teacherUserIds } },
+        ],
+      }
     } else if (session.user.role === "TEACHER") {
       query = { teacherId: session.user.id }
     } else if (session.user.role === "ADMIN") {
@@ -33,7 +45,7 @@ export async function GET(req: Request) {
     }
 
     const courses = await Course.find(query)
-      .populate("teacherId", "name email")
+      .populate("teacherId", "name email role")
       .sort({ createdAt: -1 })
 
     // Add enrollment count to each course
@@ -83,7 +95,7 @@ export async function POST(req: Request) {
       classLevel: classLevel || "",
       program: program || "",
       semester: semester || "",
-      teacherId: providedTeacherId || session.user.id,
+      ...(providedTeacherId ? { teacherId: providedTeacherId } : {}),
       published: true,
     })
 

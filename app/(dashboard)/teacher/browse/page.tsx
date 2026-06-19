@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, BookOpen, Loader2, ArrowRight } from "lucide-react"
+import { Search, BookOpen, Loader2, ArrowRight, UserPlus } from "lucide-react"
 import Link from "next/link"
+import { Toast, ToastType } from "@/components/ui/Toast"
 import { formatText } from "@/lib/utils"
 
 type TeacherCourse = {
@@ -13,23 +14,49 @@ type TeacherCourse = {
   classLevel?: string
   semester?: string
   enrollmentCount?: number
-  teacherId?: { name?: string }
+  isOwner?: boolean
+  teacherId?: { _id?: string; name?: string; role?: string }
 }
 
 export default function TeacherBrowsePage() {
   const [courses, setCourses] = useState<TeacherCourse[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [claimingMap, setClaimingMap] = useState<Record<string, boolean>>({})
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
 
   async function fetchData() {
     try {
-      const res = await fetch("/api/courses")
+      const res = await fetch("/api/courses?teacherCatalog=true")
       const data = await res.json()
       if (res.ok) setCourses(data)
     } catch {
       console.error("Failed to fetch data")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleClaimCourse = async (courseId: string) => {
+    setClaimingMap(prev => ({ ...prev, [courseId]: true }))
+    try {
+      const res = await fetch("/api/courses/" + courseId, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ teacherId: "self" }),
+      })
+
+      if (res.ok) {
+        await fetchData()
+        setToast({ message: "Course assigned to you successfully", type: "success" })
+      } else {
+        const data = await res.json()
+        setToast({ message: data.error || "Failed to claim course", type: "error" })
+      }
+    } catch {
+      setToast({ message: "Network error. Please try again.", type: "error" })
+    } finally {
+      setClaimingMap(prev => ({ ...prev, [courseId]: false }))
     }
   }
 
@@ -146,19 +173,39 @@ export default function TeacherBrowsePage() {
                   {/* Instructor */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
                     <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)', fontWeight: 800, fontSize: '0.7rem', flexShrink: 0 }}>
-                      {course.teacherId?.name?.[0]?.toUpperCase() || 'T'}
+                       {course.teacherId?.role === "TEACHER" && course.teacherId?.name ? course.teacherId.name[0]?.toUpperCase() : "-"}
                     </div>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}>{course.teacherId?.name ? formatText(course.teacherId.name) : 'Instructor'}</span>
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#475569' }}> {course.teacherId?.role === "TEACHER" && course.teacherId?.name ? formatText(course.teacherId.name) : "Instructor not assigned"}</span>
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
-                    <Link
-                      href={`/teacher/courses/`}
-                      className="btn btn-primary"
-                      style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.875rem', padding: '0.6rem 1rem' }}
-                    >
-                      Enter Course <ArrowRight size={15} />
-                    </Link>
+                    {course.isOwner ? (
+                      <Link
+                        href={`/teacher/courses/${course._id}`}
+                        className="btn btn-primary"
+                        style={{ flex: 1, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.875rem', padding: '0.6rem 1rem' }}
+                      >
+                        Enter Course <ArrowRight size={15} />
+                      </Link>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleClaimCourse(course._id)}
+                        disabled={claimingMap[course._id]}
+                        className="btn btn-primary"
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.875rem', padding: '0.6rem 1rem', opacity: claimingMap[course._id] ? 0.75 : 1 }}
+                      >
+                        {claimingMap[course._id] ? (
+                          <>
+                            <Loader2 className="animate-spin" size={15} /> Assigning...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus size={15} /> Claim Course
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -166,6 +213,7 @@ export default function TeacherBrowsePage() {
         </div>
       )}
 
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   )
 }
