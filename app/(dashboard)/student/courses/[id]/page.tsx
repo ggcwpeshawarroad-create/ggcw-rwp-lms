@@ -432,7 +432,7 @@ export default function CoursePlayerPage() {
                       <h5 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Reference Materials</h5>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
                         {selectedLesson.attachments.map((file: any, idx: number) => (
-                          <a key={idx} href={file.url} target="_blank" className="glass-card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', transition: 'transform 0.2s' }}>
+                          <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" title={`Open ${file.name}`} className="glass-card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', transition: 'transform 0.2s' }}>
                             <FileText size={20} color="#4f46e5" />
                             <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{file.name}</span>
                           </a>
@@ -447,7 +447,7 @@ export default function CoursePlayerPage() {
                           <CheckCircle size={48} color="#10b981" style={{ marginBottom: '1rem' }} />
                           <h4 style={{ fontWeight: 700, color: '#065f46' }}>Assignment Submitted!</h4>
                           <p style={{ fontSize: '0.9rem', opacity: 0.6, marginTop: '0.5rem' }}>You successfully uploaded: {assignmentFile?.name}</p>
-                          <a href={assignmentFile?.url} target="_blank" style={{ display: 'inline-block', marginTop: '1.5rem', fontSize: '0.875rem', color: '#4f46e5', fontWeight: 600 }}>View My Submission</a>
+                          <a href={assignmentFile?.url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: '1.5rem', fontSize: '0.875rem', color: '#4f46e5', fontWeight: 600 }}>View My Submission</a>
 
                           {(submissionData?.grade || submissionData?.feedback) && (
                             <div style={{ marginTop: '2.5rem', padding: '1.5rem', background: 'white', borderRadius: '1.25rem', border: '1px solid #e2e8f0', textAlign: 'left' }}>
@@ -521,7 +521,7 @@ export default function CoursePlayerPage() {
                       <h5 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Supporting Documents</h5>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
                         {selectedLesson.attachments.map((file: any, idx: number) => (
-                          <a key={idx} href={file.url} target="_blank" className="glass-card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', transition: 'transform 0.2s' }}>
+                          <a key={idx} href={file.url} target="_blank" rel="noopener noreferrer" title={`Open ${file.name}`} className="glass-card" style={{ padding: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', transition: 'transform 0.2s' }}>
                             <FileText size={20} color="#4f46e5" />
                             <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{file.name}</span>
                           </a>

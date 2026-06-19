@@ -116,8 +116,17 @@ function FileUploadZone({ onUpload, initialFiles = [], multiple = false, accept 
           {uploadedFiles.map((f, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem', background: 'white', borderRadius: '0.75rem', border: '1px solid #e8effd' }}>
               <CheckCircle size={16} color="#10b981" style={{ flexShrink: 0 }} />
-              <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-              <button onClick={e => { e.stopPropagation(); removeFile(i) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0.2rem' }}>
+              <a
+                href={f.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                title={`Open ${f.name}`}
+                style={{ flex: 1, fontSize: '0.875rem', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#4f46e5', textDecoration: 'none' }}
+              >
+                {f.name}
+              </a>
+              <button type="button" onClick={e => { e.stopPropagation(); removeFile(i) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '0.2rem' }}>
                 <X size={16} />
               </button>
             </div>

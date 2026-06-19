@@ -27,12 +27,16 @@ export async function GET(
       ? upload.data
       : Buffer.from(upload.data.buffer)
 
+    const safeName = String(upload.name || "file").replace(/["\r\n]/g, "_")
+    const encodedName = encodeURIComponent(safeName)
+
     return new NextResponse(data, {
       headers: {
         "Content-Type": upload.contentType || "application/octet-stream",
         "Content-Length": String(upload.size || data.length),
-        "Content-Disposition": `inline; filename="${encodeURIComponent(upload.name)}"`,
+        "Content-Disposition": `inline; filename="${safeName}"; filename*=UTF-8''${encodedName}`,
         "Cache-Control": "private, max-age=3600",
+        "X-Content-Type-Options": "nosniff",
       },
     })
   } catch (error) {
