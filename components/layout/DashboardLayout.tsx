@@ -73,6 +73,8 @@ export default function DashboardLayout({
   const currentNavItems = navItems[role] || []
 
   const pathnameToTitle = (path: string) => {
+    if (path.startsWith("/teacher/courses/") && path !== "/teacher/courses") return "Course Builder"
+
     const titles: Record<string, string> = {
       "/admin": "Admin Overview",
       "/admin/users": "User Management",

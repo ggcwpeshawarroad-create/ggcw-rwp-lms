@@ -122,32 +122,37 @@ export default function CourseBuilderPage() {
     </div>
   )
 
+  const totalLessons = chapters.reduce((sum, chapter) => sum + (chapter.lessons?.length || 0), 0)
+
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '1100px', margin: '0 auto' }}>
+    <div className="course-builder-page animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-        <div>
+      <div className="course-builder-hero">
+        <div className="course-builder-heading">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
             <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}>
               <ChevronRight style={{ transform: 'rotate(180deg)' }} size={24} />
             </button>
             <h2 style={{ fontSize: '2rem', fontWeight: 800 }}>Course Builder</h2>
           </div>
-          <p style={{ opacity: 0.6, paddingLeft: '2.5rem' }}>
-            Curriculum for <span style={{ color: '#4f46e5', fontWeight: 600 }}>{course?.title}</span>
+          <p style={{ opacity: 0.68, paddingLeft: '2.5rem', lineHeight: 1.5 }}>
+            Curriculum for <span style={{ color: '#4f46e5', fontWeight: 700 }}>{course?.title}</span>
           </p>
+          <div className="course-builder-metrics">
+            <span>{chapters.length} chapters</span>
+            <span>{totalLessons} lessons</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div className="course-builder-actions">
           {(course?.isOwner || isEnrolled) && (
           <button 
             onClick={() => router.push(`/teacher/courses/${id}/submissions`)}
-            className="btn" 
-            style={{ background: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--glass-border)' }}
+            className="btn course-builder-secondary-action"
           >
             <ClipboardList size={18} /> Submissions
           </button>
           )}
-          <button className="btn" style={{ background: 'white', display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid var(--glass-border)' }}>
+          <button className="btn course-builder-secondary-action">
             <Eye size={18} /> Preview
           </button>
           {(course?.isOwner || isEnrolled) && (
@@ -159,7 +164,7 @@ export default function CourseBuilderPage() {
       </div>
 
       {/* Curriculum List */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div className="course-builder-list">
         {chapters.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '6rem', background: 'white', borderRadius: '1.5rem', border: '2px dashed #e2e8f0', opacity: 0.5 }}>
             <BookOpen size={48} style={{ marginBottom: '1rem' }} />
@@ -167,9 +172,9 @@ export default function CourseBuilderPage() {
           </div>
         ) : (
           chapters.map((chapter) => (
-            <div key={chapter._id} className="glass-card" style={{ padding: '0', overflow: 'hidden' }}>
+            <div key={chapter._id} className="glass-card course-builder-card" style={{ padding: '0', overflow: 'hidden' }}>
               {/* Chapter Header */}
-              <div style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9' }}>
+              <div className="course-builder-chapter-header" style={{ padding: '1.25rem 1.5rem', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <GripVertical size={20} style={{ opacity: 0.3 }} />
                   <div 
