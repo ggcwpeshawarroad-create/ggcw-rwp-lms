@@ -252,21 +252,51 @@ export default function UsersPage() {
                       <td style={{ padding: '1rem 1.5rem', opacity: 0.8, fontSize: '0.875rem' }}>
                         {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                       </td>
-                      <td style={{ padding: '1rem 1.5rem', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', alignItems: 'center', minWidth: '180px' }}>
                           {user.role === "STUDENT" && (
                             <button 
                               onClick={() => { setSelectedUser(user); setShowAssignModal(true); }}
-                              className="btn"
-                              style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', background: 'var(--primary)15', color: 'var(--primary)', fontWeight: 600, border: 'none', borderRadius: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                              className="btn-action-primary"
+                              style={{ 
+                                padding: '0.5rem 0.8rem', 
+                                fontSize: '0.75rem', 
+                                background: 'rgba(1, 65, 28, 0.06)', 
+                                color: 'var(--primary)', 
+                                fontWeight: 700, 
+                                border: '1px solid rgba(1, 65, 28, 0.12)', 
+                                borderRadius: '0.75rem', 
+                                display: 'inline-flex', 
+                                alignItems: 'center', 
+                                gap: '0.4rem',
+                                minWidth: '85px',
+                                justifyContent: 'center',
+                                transition: 'all 0.2s',
+                                cursor: 'pointer'
+                              }}
                             >
                               <PlusCircle size={14} /> Course
                             </button>
                           )}
                           <button 
                             onClick={() => { setSelectedUser(user); setShowResetModal(true); }}
-                            className="btn"
-                            style={{ padding: '0.4rem 0.8rem', fontSize: '0.75rem', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', fontWeight: 600, border: 'none', borderRadius: '0.5rem', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                            className="btn-action-danger"
+                            style={{ 
+                              padding: '0.5rem 0.8rem', 
+                              fontSize: '0.75rem', 
+                              background: 'rgba(239, 68, 68, 0.06)', 
+                              color: '#ef4444', 
+                              fontWeight: 700, 
+                              border: '1px solid rgba(239, 68, 68, 0.12)', 
+                              borderRadius: '0.75rem', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '0.4rem',
+                              minWidth: '85px',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s',
+                              cursor: 'pointer'
+                            }}
                             title="Reset Password"
                           >
                             <Lock size={14} /> Reset
