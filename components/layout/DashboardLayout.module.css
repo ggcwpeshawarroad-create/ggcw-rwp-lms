@@ -56,10 +56,17 @@
   transform: translateX(4px);
 }
 
-.navItemActive {
-  background: var(--primary);
-  color: white !important;
+.navItem.navItemActive {
+  background: var(--primary) !important;
+  color: #ffffff !important;
   box-shadow: 0 10px 15px -3px rgba(var(--primary-rgb, 1, 65, 28), 0.25);
+}
+
+.navItem.navItemActive:hover {
+  background: var(--primary-hover, #013216) !important;
+  color: #ffffff !important;
+  transform: translateX(4px);
+  opacity: 1 !important;
 }
 
 .sidebarFooter {

@@ -172,7 +172,7 @@ export default function DashboardLayout({
             </div>
           </div>
         </header>
-        <section className={`${styles.content} dashboard-content dashboard-role-${role.toLowerCase()}`}>
+        <section className={`${styles.content} dashboard-content dashboard-role-${(role || "guest").toLowerCase()}`}>
           <div className={`animate-fade-in dashboard-content-inner dashboard-page-${pathname.split("/").filter(Boolean).join("-") || "home"}`}>
             {['/admin', '/teacher', '/student'].includes(pathname) && (
               <div className="dashboard-school-banner" style={{ 
