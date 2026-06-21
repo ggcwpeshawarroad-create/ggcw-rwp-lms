@@ -23,37 +23,35 @@ export async function GET(req: Request) {
     let query: any = {}
     if (browse === "true") {
       query = { published: true }
-    } else if (teacherCatalog === "true" && session.user.role === "TEACHER") {
+    } else if (teacherCatalog === "true") {
       const teacherUsers = await User.find({ role: "TEACHER" }, "_id").lean()
-      const teacherUserIds = teacherUsers.map((teacher: any) => teacher._id.toString())
+      const teacherUserIds = teacherUsers.map((t: any) => t._id)
       
-      // Teachers should see:
-      // 1. Courses assigned to them
-      // 2. Courses with NO teacher assigned (null, undefined, empty string)
-      // 3. Courses assigned to someone who is NOT in the teacher list (like an Admin)
       query = {
         $or: [
           { teacherId: session.user.id },
           { teacherId: { $exists: false } },
           { teacherId: null },
-          { teacherId: "" },
-          { teacherId: { $nin: teacherUserIds } }
-        ]
+          { teacherId: { $nin: teacherUserIds } },
+        ],
       }
-      console.log(`[DEBUG] Teacher Catalog Query for ${session.user.name}:`, JSON.stringify(query))
+      console.log(`[CATALOG DEBUG] User: ${session.user.name}, Role: ${session.user.role}`)
+      console.log(`[CATALOG DEBUG] Teacher IDs found: ${teacherUserIds.length}`)
     } else if (session.user.role === "TEACHER") {
       query = { teacherId: session.user.id }
     } else if (session.user.role === "ADMIN") {
-      // If admin and teacherId is provided, filter. Otherwise show all.
       if (teacherId) query = { teacherId }
     } else {
-      // Students only see published courses
       query = { published: true }
     }
 
     const courses = await Course.find(query)
       .populate("teacherId", "name email role")
       .sort({ createdAt: -1 })
+
+    if (teacherCatalog === "true") {
+      console.log(`[CATALOG DEBUG] Results found in DB: ${courses.length}`)
+    }
 
     // Add enrollment count to each course
     const Enrollment = (await import("@/models/Enrollment")).default
