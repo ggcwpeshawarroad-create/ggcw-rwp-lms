@@ -2,6 +2,9 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Course from "@/models/Course"
 import User from "@/models/User"
+import Enrollment from "@/models/Enrollment"
+import Log from "@/models/Log"
+import { Types } from "mongoose"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -24,19 +27,7 @@ export async function GET(req: Request) {
     if (browse === "true") {
       query = { published: true }
     } else if (teacherCatalog === "true") {
-      const teacherUsers = await User.find({ role: "TEACHER" }, "_id").lean()
-      const teacherUserIds = teacherUsers.map((t: any) => t._id)
-      
-      query = {
-        $or: [
-          { teacherId: session.user.id },
-          { teacherId: { $exists: false } },
-          { teacherId: null },
-          { teacherId: { $nin: teacherUserIds } },
-        ],
-      }
-      console.log(`[CATALOG DEBUG] User: ${session.user.name}, Role: ${session.user.role}`)
-      console.log(`[CATALOG DEBUG] Teacher IDs found: ${teacherUserIds.length}`)
+      query = { published: true }
     } else if (session.user.role === "TEACHER") {
       query = { teacherId: session.user.id }
     } else if (session.user.role === "ADMIN") {
@@ -49,22 +40,38 @@ export async function GET(req: Request) {
       .populate("teacherId", "name email role")
       .sort({ createdAt: -1 })
 
-    if (teacherCatalog === "true") {
-      console.log(`[CATALOG DEBUG] Results found in DB: ${courses.length}`)
-    }
-
     // Add enrollment count to each course
-    const Enrollment = (await import("@/models/Enrollment")).default
-    const studentIds = await User.find({ role: "STUDENT" }, "_id").lean()
+    const [studentIds, teacherIds] = await Promise.all([
+      User.find({ role: "STUDENT" }, "_id").lean(),
+      User.find({ role: "TEACHER" }, "_id").lean(),
+    ])
     const studentUserIds = studentIds.map((student: any) => student._id)
+    const teacherUserIds = teacherIds.map((teacher: any) => teacher._id)
     const coursesWithCounts = await Promise.all(
       courses.map(async (course) => {
-        const enrollmentCount = await Enrollment.countDocuments({ courseId: course._id, userId: { $in: studentUserIds } })
+        const [enrollmentCount, teacherEnrollment] = await Promise.all([
+          Enrollment.countDocuments({ courseId: course._id, userId: { $in: studentUserIds } }),
+          Enrollment.findOne({ courseId: course._id, userId: { $in: teacherUserIds } })
+            .populate("userId", "name email role")
+            .lean(),
+        ])
         const isOwner = course.teacherId?._id?.toString() === session.user.id || course.teacherId?.toString() === session.user.id
+        const assignedTeacher = course.teacherId?.role === "TEACHER" ? course.teacherId : null
+        const teacherSource: any = teacherEnrollment?.userId || assignedTeacher
+        const enrolledTeacher = teacherSource
+          ? {
+              _id: teacherSource._id?.toString?.() || teacherSource.toString?.(),
+              name: teacherSource.name || "Teacher",
+              email: teacherSource.email || "",
+              role: teacherSource.role || "TEACHER",
+            }
+          : null
         return {
           ...course.toObject(),
           enrollmentCount,
-          isOwner
+          isOwner,
+          enrolledTeacher,
+          isTeacherEnrolled: enrolledTeacher?._id === session.user.id,
         }
       })
     )
@@ -91,6 +98,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 })
     }
  
+    if (providedTeacherId && !Types.ObjectId.isValid(providedTeacherId)) {
+      return NextResponse.json({ error: "Invalid teacherId" }, { status: 400 })
+    }
+
     await connectDB()
  
     const course = await Course.create({
@@ -105,7 +116,6 @@ export async function POST(req: Request) {
     })
 
     // Log the course creation
-    const Log = (await import("@/models/Log")).default
     await Log.create({
       userId: session.user.id,
       action: "COURSE_CREATED",

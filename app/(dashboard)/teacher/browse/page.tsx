@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, BookOpen, Loader2, ArrowRight, UserPlus } from "lucide-react"
+import { Search, BookOpen, Loader2, ArrowRight, UserPlus, CheckCircle } from "lucide-react"
 import Link from "next/link"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { formatText } from "@/lib/utils"
@@ -15,11 +15,14 @@ type TeacherCourse = {
   semester?: string
   enrollmentCount?: number
   isOwner?: boolean
+  isTeacherEnrolled?: boolean
+  enrolledTeacher?: { _id?: string; name?: string; role?: string }
   teacherId?: { _id?: string; name?: string; role?: string }
 }
 
 export default function TeacherBrowsePage() {
   const [courses, setCourses] = useState<TeacherCourse[]>([])
+  const [enrollments, setEnrollments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [claimingMap, setClaimingMap] = useState<Record<string, boolean>>({})
@@ -27,9 +30,14 @@ export default function TeacherBrowsePage() {
 
   async function fetchData() {
     try {
-      const res = await fetch("/api/courses?teacherCatalog=true")
-      const data = await res.json()
-      if (res.ok) setCourses(data)
+      const [cRes, eRes] = await Promise.all([
+        fetch("/api/courses?teacherCatalog=true"),
+        fetch("/api/enrollments?userId=self")
+      ])
+      const cData = await cRes.json()
+      const eData = await eRes.json()
+      if (cRes.ok) setCourses(cData)
+      if (eRes.ok) setEnrollments(eData)
     } catch {
       console.error("Failed to fetch data")
     } finally {
@@ -40,18 +48,18 @@ export default function TeacherBrowsePage() {
   const handleClaimCourse = async (courseId: string) => {
     setClaimingMap(prev => ({ ...prev, [courseId]: true }))
     try {
-      const res = await fetch("/api/courses/" + courseId, {
-        method: "PATCH",
+      const res = await fetch("/api/enrollments", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ teacherId: "self" }),
+        body: JSON.stringify({ courseId }),
       })
 
       if (res.ok) {
         await fetchData()
-        setToast({ message: "Course assigned to you successfully", type: "success" })
+        setToast({ message: "Enrolled successfully! You can now access the course.", type: "success" })
       } else {
         const data = await res.json()
-        setToast({ message: data.error || "Failed to claim course", type: "error" })
+        setToast({ message: data.error || "Enrollment failed", type: "error" })
       }
     } catch {
       setToast({ message: "Network error. Please try again.", type: "error" })
@@ -62,6 +70,9 @@ export default function TeacherBrowsePage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchData() }, [])
+
+  const getEnrollment = (courseId: string) =>
+    enrollments.find(e => e.courseId?._id === courseId)
 
   const filteredCourses = courses.filter(c => {
     const searchLower = search.toLowerCase()
@@ -113,7 +124,16 @@ export default function TeacherBrowsePage() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
-          {filteredCourses.map((course, idx) => (
+          {filteredCourses.map((course, idx) => {
+            const enrollment = getEnrollment(course._id)
+            const isEnrolled = !!enrollment
+            const hasAnotherTeacher = !!course.enrolledTeacher && !isEnrolled
+            const teacherName = course.enrolledTeacher?.name ? formatText(course.enrolledTeacher.name) : "another teacher"
+            const teacherRegisteredMessage = course.enrolledTeacher?.name
+              ? `Another teacher, ${teacherName}, is already registered with this course. Only one teacher can enroll in a course.`
+              : "Another teacher is already registered with this course. Only one teacher can enroll in a course."
+
+            return (
               <div
                 key={course._id}
                 className="glass-card"
@@ -138,6 +158,11 @@ export default function TeacherBrowsePage() {
                   <div style={{ position: 'absolute', bottom: '0.75rem', left: '1rem', background: 'rgba(0,0,0,0.35)', color: 'white', padding: '0.2rem 0.65rem', borderRadius: '0.5rem', fontSize: '0.72rem', fontWeight: 700, backdropFilter: 'blur(4px)' }}>
                     {course.enrollmentCount || 0} Learners
                   </div>
+                  {isEnrolled && (
+                    <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: '#10b981', color: 'white', padding: '0.25rem 0.65rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <CheckCircle size={12} /> Enrolled
+                    </div>
+                  )}
                 </div>
 
                 {/* Card body */}
@@ -181,7 +206,7 @@ export default function TeacherBrowsePage() {
                   </div>
 
                   <div style={{ display: 'flex', gap: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '1.25rem' }}>
-                    {course.isOwner ? (
+                    {isEnrolled ? (
                       <Link
                         href={`/teacher/courses/${course._id}`}
                         className="btn btn-primary"
@@ -193,25 +218,33 @@ export default function TeacherBrowsePage() {
                       <button
                         type="button"
                         onClick={() => handleClaimCourse(course._id)}
-                        disabled={claimingMap[course._id]}
+                        disabled={claimingMap[course._id] || hasAnotherTeacher}
                         className="btn btn-primary"
-                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.875rem', padding: '0.6rem 1rem', opacity: claimingMap[course._id] ? 0.75 : 1 }}
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.875rem', padding: '0.6rem 1rem', opacity: claimingMap[course._id] || hasAnotherTeacher ? 0.75 : 1 }}
                       >
                         {claimingMap[course._id] ? (
                           <>
                             <Loader2 className="animate-spin" size={15} /> Enrolling...
                           </>
+                        ) : hasAnotherTeacher ? (
+                          <>Course already has a teacher</>
                         ) : (
                           <>
-                            <UserPlus size={15} /> Enrol as Instructor
+                            <UserPlus size={15} /> Enrol Now
                           </>
                         )}
                       </button>
                     )}
                   </div>
+                  {hasAnotherTeacher && (
+                    <p style={{ marginTop: '0.65rem', fontSize: '0.78rem', lineHeight: 1.45, color: '#b45309', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.22)', borderRadius: '0.55rem', padding: '0.55rem 0.7rem' }}>
+                      {teacherRegisteredMessage}
+                    </p>
+                  )}
                 </div>
               </div>
-          ))}
+            )
+          })}
         </div>
       )}
 

@@ -41,12 +41,25 @@ export default function TeacherCoursesPage() {
   const fetchCourses = async () => {
     setLoading(true)
     try {
-      const res = await fetch("/api/courses")
-      const data = await res.json()
+      const [assignedRes, enrolledRes] = await Promise.all([
+        fetch("/api/courses"),
+        fetch("/api/enrollments?userId=self"),
+      ])
+      const assignedData = await assignedRes.json()
+      const enrolledData = await enrolledRes.json()
 
-      if (res.ok) {
-        setCourses(data)
+      const merged = new Map<string, any>()
+      if (assignedRes.ok) {
+        assignedData.forEach((course: any) => merged.set(course._id, course))
       }
+      if (enrolledRes.ok) {
+        enrolledData.forEach((enrollment: any) => {
+          const course = enrollment.courseId
+          if (course?._id) merged.set(course._id, course)
+        })
+      }
+
+      setCourses(Array.from(merged.values()))
     } catch (err) {
       console.error("Failed to fetch courses")
     } finally {
@@ -188,6 +201,7 @@ export default function TeacherCoursesPage() {
                             <Edit2 size={18} />
                           </button>
                           )}
+                          {course.isOwner && (
                           <button 
                             onClick={() => togglePublish(course._id, course.published)}
                             className="btn" 
@@ -201,6 +215,7 @@ export default function TeacherCoursesPage() {
                           >
                             {course.published ? "Unpublish" : "Publish"}
                           </button>
+                          )}
                         </div>
                       </td>
                     </tr>

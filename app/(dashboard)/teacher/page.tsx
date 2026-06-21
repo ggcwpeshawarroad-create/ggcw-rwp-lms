@@ -16,15 +16,34 @@ export default async function TeacherPage() {
 
   if (session?.user?.id) {
     await connectDB()
-    const rawCourses = await Course.find({ teacherId: session.user.id })
-      .sort({ createdAt: -1 })
-      .lean()
+    const [rawAssignedCourses, rawEnrollments] = await Promise.all([
+      Course.find({ teacherId: session.user.id }).sort({ createdAt: -1 }).lean(),
+      Enrollment.find({ userId: session.user.id })
+        .populate("courseId")
+        .sort({ createdAt: -1 })
+        .lean(),
+    ])
 
+    const mergedCourses = new Map<string, any>()
+    rawAssignedCourses.forEach((course: any) => {
+      mergedCourses.set(String(course._id), { ...course, isOwner: true })
+    })
+    rawEnrollments.forEach((enrollment: any) => {
+      const course = enrollment.courseId
+      if (course?._id) {
+        mergedCourses.set(String(course._id), {
+          ...course,
+          isOwner: String(course.teacherId) === session.user.id,
+        })
+      }
+    })
+
+    const rawCourses = Array.from(mergedCourses.values())
     courseCount = rawCourses.length
     const studentIds = await User.find({ role: "STUDENT" }, "_id").lean()
     const studentUserIds = studentIds.map((student: any) => student._id)
 
-    // Add enrollment count to each course
+    // Add student enrollment count to each course.
     courses = await Promise.all(
       rawCourses.map(async (c: any) => {
         const count = await Enrollment.countDocuments({ courseId: c._id, userId: { $in: studentUserIds } })

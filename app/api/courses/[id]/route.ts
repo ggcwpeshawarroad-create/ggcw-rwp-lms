@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Course from "@/models/Course"
 import User from "@/models/User"
+import Log from "@/models/Log"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -77,7 +78,6 @@ export async function PATCH(
     )
  
     // Log the update
-    const Log = (await import("@/models/Log")).default
     await Log.create({
       userId: session.user.id,
       action: "COURSE_UPDATED",
@@ -116,7 +116,6 @@ export async function DELETE(
     await Course.findByIdAndDelete(id)
 
     // Log the deletion
-    const Log = (await import("@/models/Log")).default
     await Log.create({
       userId: session.user.id,
       action: "COURSE_DELETED",

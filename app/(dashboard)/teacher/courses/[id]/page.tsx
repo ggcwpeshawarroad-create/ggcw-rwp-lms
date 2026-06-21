@@ -50,7 +50,7 @@ export default function CourseBuilderPage() {
       const [cRes, chRes, eRes] = await Promise.all([
         fetch(`/api/courses/${id}`),
         fetch(`/api/courses/${id}/chapters`),
-        fetch(`/api/enrollments?courseId=${id}`)
+        fetch(`/api/enrollments?courseId=${id}&userId=self`)
       ])
       const cData = await cRes.json()
       const chData = await chRes.json()

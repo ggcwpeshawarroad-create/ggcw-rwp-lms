@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Enrollment from "@/models/Enrollment"
+import Log from "@/models/Log"
 import Course from "@/models/Course"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
@@ -22,7 +23,7 @@ export async function DELETE(
     }
 
     // Only the course's teacher or an Admin can remove an enrollment
-    const isTeacher = session.user.role === "TEACHER" && enrollment.courseId.teacherId.toString() === session.user.id
+    const isTeacher = session.user.role === "TEACHER" && enrollment.courseId.teacherId?.toString() === session.user.id
     const isAdmin = session.user.role === "ADMIN"
 
     if (!isTeacher && !isAdmin) {
@@ -32,7 +33,6 @@ export async function DELETE(
     await Enrollment.findByIdAndDelete(id)
 
     // Log the removal
-    const Log = (await import("@/models/Log")).default
     await Log.create({
       userId: session.user.id,
       action: "STUDENT_UNENROLLED",
