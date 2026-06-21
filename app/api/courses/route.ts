@@ -25,16 +25,22 @@ export async function GET(req: Request) {
       query = { published: true }
     } else if (teacherCatalog === "true" && session.user.role === "TEACHER") {
       const teacherUsers = await User.find({ role: "TEACHER" }, "_id").lean()
-      const teacherUserIds = teacherUsers.map((teacher: any) => teacher._id)
+      const teacherUserIds = teacherUsers.map((teacher: any) => teacher._id.toString())
+      
+      // Teachers should see:
+      // 1. Courses assigned to them
+      // 2. Courses with NO teacher assigned (null, undefined, empty string)
+      // 3. Courses assigned to someone who is NOT in the teacher list (like an Admin)
       query = {
         $or: [
           { teacherId: session.user.id },
           { teacherId: { $exists: false } },
           { teacherId: null },
           { teacherId: "" },
-          { teacherId: { $nin: teacherUserIds } },
-        ],
+          { teacherId: { $nin: teacherUserIds } }
+        ]
       }
+      console.log(`[DEBUG] Teacher Catalog Query for ${session.user.name}:`, JSON.stringify(query))
     } else if (session.user.role === "TEACHER") {
       query = { teacherId: session.user.id }
     } else if (session.user.role === "ADMIN") {
