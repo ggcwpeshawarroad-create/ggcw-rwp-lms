@@ -42,6 +42,10 @@ function getVideoThumbnailUrl(url: string) {
   return youTubeId ? "https://img.youtube.com/vi/" + youTubeId + "/hqdefault.jpg" : ""
 }
 
+function normalizeLessonType(type?: string) {
+  return (type || "LECTURE").trim().toUpperCase()
+}
+
 export default function CoursePlayerPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -73,7 +77,9 @@ export default function CoursePlayerPage() {
     setSubmissionData(null)
     setSubmissionSuccess(false)
     setError("")
-    if (selectedLesson?.type === "QUIZ" || selectedLesson?.type === "ASSIGNMENT") {
+    const lessonType = normalizeLessonType(selectedLesson?.type)
+    setAssignmentFile(null)
+    if (lessonType === "QUIZ" || lessonType === "ASSIGNMENT") {
         checkSubmissionStatus()
     }
   }, [selectedLesson?._id])
@@ -87,9 +93,9 @@ export default function CoursePlayerPage() {
                 const sub = data[0]
                 setSubmissionData(sub)
                 setSubmissionSuccess(true)
-                if (selectedLesson.type === "QUIZ") {
+                if (normalizeLessonType(selectedLesson.type) === "QUIZ") {
                   setQuizResult({ score: sub.score, total: sub.totalQuestions })
-                } else if (selectedLesson.type === "ASSIGNMENT") {
+                } else if (normalizeLessonType(selectedLesson.type) === "ASSIGNMENT") {
                   setAssignmentFile(sub.assignmentFile)
                 }
             }
@@ -233,29 +239,40 @@ export default function CoursePlayerPage() {
                   {chapter.title}
                 </div>
                 <div>
-                  {chapter.lessons.map((lesson: any) => (
-                    <div 
+                  {chapter.lessons.map((lesson: any) => {
+                    const lessonType = normalizeLessonType(lesson.type)
+                    const isActive = selectedLesson?._id === lesson._id
+
+                    return (
+                    <button
                       key={lesson._id}
-                      onClick={() => setSelectedLesson(lesson)}
-                      style={{ 
-                        padding: '1rem 1.5rem', 
-                        cursor: 'pointer', 
-                        display: 'flex', 
-                        alignItems: 'center', 
+                      type="button"
+                      onClick={() => setSelectedLesson({ ...lesson, type: lessonType })}
+                      style={{
+                        width: '100%',
+                        padding: '1rem 1.5rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
                         gap: '0.75rem',
-                        background: selectedLesson?._id === lesson._id ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
-                        borderLeft: `4px solid ${selectedLesson?._id === lesson._id ? '#4f46e5' : 'transparent'}`,
+                        background: isActive ? 'rgba(79, 70, 229, 0.1)' : 'transparent',
+                        border: 'none',
+                        borderLeft: `4px solid ${isActive ? '#4f46e5' : 'transparent'}`,
+                        textAlign: 'left',
                         transition: 'all 0.2s'
                       }}
                     >
-                      {lesson.type === "LECTURE" && <Video size={16} color={selectedLesson?._id === lesson._id ? '#4f46e5' : '#94a3b8'} />}
-                      {lesson.type === "QUIZ" && <HelpCircle size={16} color="#f59e0b" />}
-                      {lesson.type === "ASSIGNMENT" && <ClipboardList size={16} color="#ef4444" />}
-                      <span style={{ fontSize: '0.875rem', fontWeight: selectedLesson?._id === lesson._id ? 700 : 500, color: selectedLesson?._id === lesson._id ? '#4f46e5' : 'inherit' }}>
+                      {lessonType === "LECTURE" && <Video size={16} color={isActive ? '#4f46e5' : '#94a3b8'} />}
+                      {lessonType === "QUIZ" && <HelpCircle size={16} color="#f59e0b" />}
+                      {lessonType === "ASSIGNMENT" && <ClipboardList size={16} color="#ef4444" />}
+                      {lessonType === "DOCUMENT" && <FileText size={16} color="#6366f1" />}
+                      {lessonType !== "LECTURE" && lessonType !== "QUIZ" && lessonType !== "ASSIGNMENT" && lessonType !== "DOCUMENT" && <BookOpen size={16} color="#94a3b8" />}
+                      <span style={{ fontSize: '0.875rem', fontWeight: isActive ? 700 : 500, color: isActive ? '#4f46e5' : '#1e293b' }}>
                         {lesson.title}
                       </span>
-                    </div>
-                  ))}
+                    </button>
+                    )
+                  })}
                 </div>
               </div>
             ))}
@@ -287,7 +304,7 @@ export default function CoursePlayerPage() {
             </div>
           ) : (
             <div className="animate-slide-up">
-              {selectedLesson.type === "LECTURE" && selectedLesson.videoUrl && (
+              {normalizeLessonType(selectedLesson.type) === "LECTURE" && selectedLesson.videoUrl && (
                 <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '1.5rem', overflow: 'hidden', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', marginBottom: '2.5rem' }}>
                    <iframe
                     src={getVideoEmbedUrl(selectedLesson.videoUrl)}
@@ -299,7 +316,7 @@ export default function CoursePlayerPage() {
                 </div>
               )}
 
-              {selectedLesson.type === "QUIZ" && (
+              {normalizeLessonType(selectedLesson.type) === "QUIZ" && (
                 <div className="glass-card" style={{ padding: '3rem', marginBottom: '2rem' }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                      <div>
@@ -407,7 +424,7 @@ export default function CoursePlayerPage() {
                 </div>
               )}
 
-               {selectedLesson.type === "ASSIGNMENT" && (
+               {normalizeLessonType(selectedLesson.type) === "ASSIGNMENT" && (
                 <div className="glass-card" style={{ padding: '3rem', marginBottom: '2rem' }}>
                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem' }}>
                     <div>
@@ -500,7 +517,7 @@ export default function CoursePlayerPage() {
                 </div>
               )}
 
-              {selectedLesson.type !== "QUIZ" && selectedLesson.type !== "ASSIGNMENT" && (
+              {normalizeLessonType(selectedLesson.type) !== "QUIZ" && normalizeLessonType(selectedLesson.type) !== "ASSIGNMENT" && (
                 <div className="glass-card" style={{ padding: '3rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <span style={{ padding: '0.4rem 1rem', background: 'rgba(79, 70, 229, 0.15)', color: '#4f46e5', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 700 }}>
