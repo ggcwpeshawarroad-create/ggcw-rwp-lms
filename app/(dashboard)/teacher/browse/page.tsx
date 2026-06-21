@@ -83,9 +83,9 @@ export default function TeacherBrowsePage() {
       {/* Header */}
       <div style={{ marginBottom: '2.5rem' }}>
         <h2 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--primary)', marginBottom: '0.5rem' }}>
-          Courses
+          Browse Catalog
         </h2>
-        <p style={{ opacity: 0.6 }}>View courses assigned to you by the super admin</p>
+        <p style={{ opacity: 0.6 }}>Enrol in available courses to start managing them</p>
       </div>
 
       {/* Search */}

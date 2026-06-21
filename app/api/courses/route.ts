@@ -31,6 +31,7 @@ export async function GET(req: Request) {
           { teacherId: session.user.id },
           { teacherId: { $exists: false } },
           { teacherId: null },
+          { teacherId: "" },
           { teacherId: { $nin: teacherUserIds } },
         ],
       }
