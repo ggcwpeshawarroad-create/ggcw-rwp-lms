@@ -59,9 +59,9 @@ export default function DashboardLayout({
     ],
     TEACHER: [
       { name: "Overview", href: "/teacher", icon: LayoutDashboard },
-      { name: "Courses", href: "/teacher/browse", icon: Search },
+      { name: "Browse Catalog", href: "/teacher/browse", icon: Search },
       { name: "My Courses", href: "/teacher/courses", icon: BookOpen },
-      { name: "Students", href: "/teacher/students", icon: Users },
+      { name: "Student Roster", href: "/teacher/students", icon: Users },
     ],
     STUDENT: [
       { name: "Overview", href: "/student", icon: LayoutDashboard },
@@ -85,7 +85,7 @@ export default function DashboardLayout({
       "/admin/logs": "System Logs",
       "/admin/settings": "System Settings",
       "/teacher": "Teacher Dashboard",
-      "/teacher/browse": "Courses",
+      "/teacher/browse": "Browse Catalog",
       "/teacher/courses": "My Courses",
       "/teacher/students": "Student Roster",
       "/student": "Student Dashboard",

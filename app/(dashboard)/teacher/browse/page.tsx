@@ -197,11 +197,11 @@ export default function TeacherBrowsePage() {
                       >
                         {claimingMap[course._id] ? (
                           <>
-                            <Loader2 className="animate-spin" size={15} /> Assigning...
+                            <Loader2 className="animate-spin" size={15} /> Enrolling...
                           </>
                         ) : (
                           <>
-                            <UserPlus size={15} /> Claim Course
+                            <UserPlus size={15} /> Enrol as Instructor
                           </>
                         )}
                       </button>
