@@ -63,10 +63,12 @@ export default function TeacherBrowsePage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchData() }, [])
 
-  const filteredCourses = courses.filter(c =>
-    c.title?.toLowerCase().includes(search.toLowerCase()) ||
-    c.teacherId?.name?.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredCourses = courses.filter(c => {
+    const searchLower = search.toLowerCase()
+    const titleMatch = c.title?.toLowerCase().includes(searchLower)
+    const teacherMatch = c.teacherId?.name ? c.teacherId.name.toLowerCase().includes(searchLower) : false
+    return titleMatch || teacherMatch
+  })
 
   // Gradient palette for cards
   const gradients = [
