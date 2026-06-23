@@ -28,6 +28,17 @@ function getVideoThumbnailUrl(url: string) {
   return youTubeId ? "https://img.youtube.com/vi/" + youTubeId + "/hqdefault.jpg" : ""
 }
 
+function toDateTimeLocalValue(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return localDate.toISOString().slice(0, 16)
+}
+
+function localDateTimeToIso(value: string) {
+  return value ? new Date(value).toISOString() : ""
+}
+
 const LESSON_TYPES = [
   { key: "LECTURE", label: "Lecture / Video", icon: Video, color: "#4f46e5", desc: "Add a video lecture with content notes" },
   { key: "QUIZ", label: "Quiz", icon: HelpCircle, color: "#f59e0b", desc: "Create a multiple choice quiz" },
@@ -184,8 +195,8 @@ export default function NewLessonPage() {
     try {
       const body: any = { title, content, type: selectedType, chapterId, isRetakeAllowed }
       if (content.trim()) body.content = content
-      if (startDate) body.startDate = startDate
-      if (endDate) body.endDate = endDate
+      if (startDate) body.startDate = localDateTimeToIso(startDate)
+      if (endDate) body.endDate = localDateTimeToIso(endDate)
       if (selectedType === "LECTURE") body.videoUrl = videoUrl
       if (selectedType === "QUIZ") body.quizData = quizData
       if (selectedType === "DOCUMENT" || selectedType === "LECTURE" || selectedType === "ASSIGNMENT") body.attachments = attachments

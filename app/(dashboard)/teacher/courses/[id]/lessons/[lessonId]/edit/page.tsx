@@ -29,6 +29,17 @@ function getVideoThumbnailUrl(url: string) {
   return youTubeId ? "https://img.youtube.com/vi/" + youTubeId + "/hqdefault.jpg" : ""
 }
 
+function toDateTimeLocalValue(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+  return localDate.toISOString().slice(0, 16)
+}
+
+function localDateTimeToIso(value: string) {
+  return value ? new Date(value).toISOString() : ""
+}
+
 type UploadedFile = { name: string; url: string; size?: number }
 
 const LESSON_TYPES = [
@@ -172,8 +183,8 @@ export default function EditLessonPage() {
           setQuizData(data.quizData || [])
           
           // Format dates for input[type="datetime-local"]
-          if (data.startDate) setStartDate(new Date(data.startDate).toISOString().slice(0, 16))
-          if (data.endDate) setEndDate(new Date(data.endDate).toISOString().slice(0, 16))
+          if (data.startDate) setStartDate(toDateTimeLocalValue(data.startDate))
+          if (data.endDate) setEndDate(toDateTimeLocalValue(data.endDate))
           setIsRetakeAllowed(!!data.isRetakeAllowed)
         } else {
           setToast({ message: "Failed to load lesson data", type: "error" })
@@ -220,8 +231,8 @@ export default function EditLessonPage() {
       title, 
       type: selectedType, 
       content,
-      startDate: startDate ? new Date(startDate).toISOString() : null,
-      endDate: endDate ? new Date(endDate).toISOString() : null,
+      startDate: startDate ? localDateTimeToIso(startDate) : null,
+      endDate: endDate ? localDateTimeToIso(endDate) : null,
       isRetakeAllowed
     }
     if (selectedType === "LECTURE") payload.videoUrl = videoUrl
