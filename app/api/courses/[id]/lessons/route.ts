@@ -22,11 +22,9 @@ export async function GET(
 
     let lessons = (await Lesson.find(query).sort({ order: 1 }).lean()) as ILesson[]
 
-    // If student, filter by date and strip correct answers
+    // If student, keep lessons visible but strip correct answers.
+    // Availability is shown in the player so dated lessons do not disappear.
     if (session?.user?.role === "STUDENT") {
-      const now = new Date()
-      lessons = lessons.filter(l => !l.startDate || now >= new Date(l.startDate))
-      
       lessons = lessons.map(lesson => {
         if (lesson.type === "QUIZ" && lesson.quizData) {
           lesson.quizData = lesson.quizData.map((q: any) => {

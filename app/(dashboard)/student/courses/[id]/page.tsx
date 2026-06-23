@@ -46,6 +46,10 @@ function normalizeLessonType(type?: string) {
   return (type || "LECTURE").trim().toUpperCase()
 }
 
+function isLessonLocked(lesson: any) {
+  return !!lesson?.startDate && new Date() < new Date(lesson.startDate)
+}
+
 export default function CoursePlayerPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -242,6 +246,7 @@ export default function CoursePlayerPage() {
                   {chapter.lessons.map((lesson: any) => {
                     const lessonType = normalizeLessonType(lesson.type)
                     const isActive = selectedLesson?._id === lesson._id
+                    const locked = isLessonLocked(lesson)
 
                     return (
                     <button
@@ -252,6 +257,7 @@ export default function CoursePlayerPage() {
                         width: '100%',
                         padding: '1rem 1.5rem',
                         cursor: 'pointer',
+                        opacity: locked ? 0.62 : 1,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.75rem',
@@ -269,6 +275,11 @@ export default function CoursePlayerPage() {
                       {lessonType !== "LECTURE" && lessonType !== "QUIZ" && lessonType !== "ASSIGNMENT" && lessonType !== "DOCUMENT" && <BookOpen size={16} color="#94a3b8" />}
                       <span style={{ fontSize: '0.875rem', fontWeight: isActive ? 700 : 500, color: isActive ? '#4f46e5' : '#1e293b' }}>
                         {lesson.title}
+                        {locked && (
+                          <span style={{ display: 'block', marginTop: '0.25rem', fontSize: '0.7rem', color: '#b45309', fontWeight: 600 }}>
+                            Opens {new Date(lesson.startDate).toLocaleString()}
+                          </span>
+                        )}
                       </span>
                     </button>
                     )
@@ -301,6 +312,14 @@ export default function CoursePlayerPage() {
             <div style={{ textAlign: 'center', padding: '10rem', opacity: 0.5 }}>
               <BookOpen size={64} style={{ marginBottom: '1rem' }} />
               <p>Select a lesson from the sidebar to start learning.</p>
+            </div>
+          ) : isLessonLocked(selectedLesson) ? (
+            <div className="glass-card animate-slide-up" style={{ padding: '4rem', textAlign: 'center' }}>
+              <BookOpen size={56} color="#f59e0b" style={{ marginBottom: '1rem' }} />
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.75rem' }}>Lesson Not Available Yet</h2>
+              <p style={{ color: '#64748b', lineHeight: 1.6 }}>
+                This lesson will open on {new Date(selectedLesson.startDate).toLocaleString()}.
+              </p>
             </div>
           ) : (
             <div className="animate-slide-up">
