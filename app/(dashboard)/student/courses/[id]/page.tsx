@@ -196,7 +196,7 @@ export default function CoursePlayerPage() {
           }))
           setChapters(chaptersWithLessons)
           if (chaptersWithLessons.length > 0 && chaptersWithLessons[0].lessons.length > 0) {
-              setSelectedLesson(chaptersWithLessons[0].lessons[0])
+              setSelectedLesson({ ...chaptersWithLessons[0].lessons[0], type: normalizeLessonType(chaptersWithLessons[0].lessons[0].type) })
           }
       }
     } catch (err) {
@@ -521,7 +521,7 @@ export default function CoursePlayerPage() {
                 <div className="glass-card" style={{ padding: '3rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <span style={{ padding: '0.4rem 1rem', background: 'rgba(79, 70, 229, 0.15)', color: '#4f46e5', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 700 }}>
-                      {selectedLesson.type}
+                      {normalizeLessonType(selectedLesson.type)}
                     </span>
                     <span style={{ opacity: 0.4 }}>•</span>
                     <span style={{ fontSize: '0.875rem', opacity: 0.6 }}>{course?.title}</span>

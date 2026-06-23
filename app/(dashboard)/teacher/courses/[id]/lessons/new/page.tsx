@@ -182,7 +182,10 @@ export default function NewLessonPage() {
     setSubmitting(true)
     setError("")
     try {
-      const body: any = { title, content, type: selectedType, chapterId, startDate, endDate, isRetakeAllowed }
+      const body: any = { title, content, type: selectedType, chapterId, isRetakeAllowed }
+      if (content.trim()) body.content = content
+      if (startDate) body.startDate = startDate
+      if (endDate) body.endDate = endDate
       if (selectedType === "LECTURE") body.videoUrl = videoUrl
       if (selectedType === "QUIZ") body.quizData = quizData
       if (selectedType === "DOCUMENT" || selectedType === "LECTURE" || selectedType === "ASSIGNMENT") body.attachments = attachments
