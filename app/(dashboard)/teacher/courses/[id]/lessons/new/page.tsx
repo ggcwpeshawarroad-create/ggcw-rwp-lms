@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useRef } from "react"
-import { useParams, useRouter, useSearchParams } from "next/navigation"
+import { useEffect, useState, useRef } from "react"
+import { useParams, useRouter } from "next/navigation"
 import {
   Video, FileText, HelpCircle, ClipboardList, Megaphone, Images,
   Plus, Trash2, Loader2, ChevronRight, Upload, X, CheckCircle, AlertCircle
@@ -146,8 +146,11 @@ function FileUploadZone({ onUpload, multiple = false, accept = "*", label = "Upl
 export default function NewLessonPage() {
   const { id } = useParams()
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const chapterId = searchParams.get("chapterId") || ""
+  const [chapterId, setChapterId] = useState("")
+
+  useEffect(() => {
+    setChapterId(new URLSearchParams(window.location.search).get("chapterId") || "")
+  }, [])
 
   const [selectedType, setSelectedType] = useState<string | null>(null)
   const [title, setTitle] = useState("")
@@ -188,6 +191,10 @@ export default function NewLessonPage() {
   const handleSubmit = async () => {
     if (!selectedType || !title.trim()) {
       setError("Please select a lesson type and add a title.")
+      return
+    }
+    if (!chapterId) {
+      setError("Missing chapter. Please go back to the course builder and choose Add Lesson from a chapter.")
       return
     }
     setSubmitting(true)
@@ -232,6 +239,7 @@ export default function NewLessonPage() {
   }
 
   const typeInfo = LESSON_TYPES.find(t => t.key === selectedType)
+  const TypeIcon = typeInfo?.icon
 
   return (
     <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 0' }} className="animate-fade-in">
@@ -287,7 +295,7 @@ export default function NewLessonPage() {
       {selectedType && (
         <div className="glass-card" style={{ padding: '2rem', marginBottom: '2rem' }}>
           <h3 style={{ fontWeight: 700, marginBottom: '1.5rem', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            {typeInfo && <typeInfo.icon size={20} color={typeInfo.color} />}
+            {TypeIcon && <TypeIcon size={20} color={typeInfo?.color} />}
             2. Lesson Details {typeInfo && `— ${typeInfo.label}`}
           </h3>
 
