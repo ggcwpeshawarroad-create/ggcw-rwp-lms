@@ -3,12 +3,12 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
-import { 
-  LayoutDashboard, 
-  Users, 
-  Settings, 
-  BookOpen, 
-  Search, 
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  BookOpen,
+  Search,
   LogOut,
   GraduationCap,
   UserPlus,
@@ -16,19 +16,20 @@ import {
   SlidersHorizontal,
   ClipboardCheck,
   FileCheck2,
+  UserRound,
   Menu,
   X
 } from "lucide-react"
 import styles from "./DashboardLayout.module.css"
 import { formatText } from "@/lib/utils"
 
-export default function DashboardLayout({ 
-  children, 
-  title, 
+export default function DashboardLayout({
+  children,
+  title,
   role,
   userName
-}: { 
-  children: React.ReactNode, 
+}: {
+  children: React.ReactNode,
   title: string,
   role: "ADMIN" | "TEACHER" | "STUDENT",
   userName?: string
@@ -68,11 +69,13 @@ export default function DashboardLayout({
       { name: "Student Roster", href: "/teacher/students", icon: Users },
       { name: "Attendance", href: "/teacher/attendance", icon: ClipboardCheck },
       { name: "Marks Sheet", href: "/teacher/marks", icon: FileCheck2 },
+      { name: "Profile", href: "/teacher/profile", icon: UserRound },
     ],
     STUDENT: [
       { name: "Overview", href: "/student", icon: LayoutDashboard },
       { name: "My Learning", href: "/student/courses", icon: BookOpen },
       { name: "Browse Courses", href: "/student/browse", icon: Search },
+      { name: "Profile", href: "/student/profile", icon: UserRound },
     ],
   }
 
@@ -98,33 +101,35 @@ export default function DashboardLayout({
       "/teacher/students": "Student Roster",
       "/teacher/attendance": "Attendance",
       "/teacher/marks": "Marks Sheet",
+      "/teacher/profile": "Profile",
       "/student": "Student Dashboard",
       "/student/courses": "My Learning",
       "/student/browse": "Browse Catalog",
+      "/student/profile": "Profile",
     }
     return titles[path] || title
   }
 
   return (
     <div className={styles.container}>
-      <div 
-        className={`${styles.sidebarOverlay} ${isSidebarOpen ? styles.sidebarOverlayOpen : ''}`} 
+      <div
+        className={`${styles.sidebarOverlay} ${isSidebarOpen ? styles.sidebarOverlayOpen : ''}`}
         onClick={() => setIsSidebarOpen(false)}
       />
       <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.logo}>
-          <div style={{ 
-            background: 'white', 
-            padding: '0.625rem', 
-            borderRadius: '1rem', 
-            marginBottom: '1rem', 
+          <div style={{
+            background: 'white',
+            padding: '0.625rem',
+            borderRadius: '1rem',
+            marginBottom: '1rem',
             boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
             border: '1px solid rgba(0,0,0,0.02)'
           }}>
             <img src="/logo.png" alt="Logo" style={{ height: '44px', display: 'block' }} />
           </div>
           <div style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--primary)', textAlign: 'center', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
-            Govt. Graduate College<br /><span style={{ opacity: 0.6 }}>Rawalpindi</span>
+            LMS<br /><span style={{ opacity: 0.6 }}>GGWC</span>
           </div>
         </div>
 
@@ -133,9 +138,9 @@ export default function DashboardLayout({
             const Icon = item.icon
             const isActive = pathname === item.href
             return (
-              <Link 
-                key={item.href} 
-                href={item.href} 
+              <Link
+                key={item.href}
+                href={item.href}
                 className={`${styles.navItem} ${isActive ? styles.navItemActive : ""}`}
                 onClick={() => setIsSidebarOpen(false)}
               >
@@ -147,8 +152,8 @@ export default function DashboardLayout({
         </nav>
 
         <div className={styles.sidebarFooter}>
-          <button 
-            onClick={handleLogout} 
+          <button
+            onClick={handleLogout}
             className={styles.logoutButton}
             disabled={isLoggingOut}
           >
@@ -161,8 +166,8 @@ export default function DashboardLayout({
       <main className={styles.main}>
         <header className={styles.header}>
           <div className={styles.headerLeft}>
-            <button 
-              className={styles.menuButton} 
+            <button
+              className={styles.menuButton}
               onClick={() => setIsSidebarOpen(true)}
               aria-label="Open Menu"
             >
