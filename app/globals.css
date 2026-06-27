@@ -763,6 +763,19 @@ body {
   width: 100%;
 }
 
+.dashboard-role-admin .dashboard-content-inner > .glass-card,
+.dashboard-role-teacher .dashboard-content-inner > .glass-card,
+.dashboard-role-admin .dashboard-content-inner > .animate-fade-in.glass-card,
+.dashboard-role-teacher .dashboard-content-inner > .animate-fade-in.glass-card {
+  box-shadow: none !important;
+}
+
+.dashboard-content .glass-card,
+.dashboard-content [style*="box-shadow"],
+.dashboard-content [style*="boxShadow"] {
+  box-shadow: none !important;
+}
+
 @media (max-width: 1024px) {
   .dashboard-role-admin,
   .dashboard-role-teacher {
