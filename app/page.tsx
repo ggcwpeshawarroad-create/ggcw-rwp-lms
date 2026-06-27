@@ -57,10 +57,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="responsive-flex" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
+    <div className="login-page responsive-flex" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'row', flexWrap: 'wrap' }}>
       {/* Left Side: Form */}
-      <div style={{ flex: 1, minWidth: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: '#ffffff' }}>
-        <div style={{ maxWidth: '400px', width: '100%' }}>
+      <div className="login-form-panel" style={{ flex: 1, minWidth: '350px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', background: '#ffffff' }}>
+        <div className="login-form-card" style={{ maxWidth: '400px', width: '100%' }}>
           <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem', fontWeight: 800, color: 'var(--primary)' }}>Welcome Back</h2>
           <p style={{ opacity: 0.7, marginBottom: '2.5rem', fontSize: '1.1rem', color: 'var(--secondary)' }}>Sign in to access your dashboard</p>
 
@@ -160,7 +160,7 @@ export default function LoginPage() {
       </div>
 
       {/* Right Side: School Info & Image as Background */}
-      <div style={{ 
+      <div className="login-hero-panel" style={{ 
         flex: 1.2, 
         minWidth: '400px', 
         backgroundImage: 'linear-gradient(rgba(1, 65, 28, 0.8), rgba(6, 23, 39, 0.9)), url(/school-hero.png)', 

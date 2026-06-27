@@ -113,6 +113,74 @@ textarea::placeholder {
   }
 }
 
+.login-page {
+  min-height: 100dvh !important;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.login-form-panel,
+.login-hero-panel {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .login-page {
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    background: #ffffff;
+  }
+
+  .login-form-panel {
+    min-width: 0 !important;
+    width: 100% !important;
+    min-height: auto;
+    padding: 1.5rem 1.25rem max(1.5rem, env(safe-area-inset-bottom)) !important;
+    position: relative;
+    z-index: 2;
+    order: 2;
+  }
+
+  .login-form-card {
+    max-width: 420px !important;
+    margin: 0 auto;
+  }
+
+  .login-form-card h2 {
+    font-size: 2rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .login-hero-panel {
+    display: flex !important;
+    order: 1;
+    min-width: 0 !important;
+    width: 100% !important;
+    min-height: 260px;
+    padding: max(2rem, env(safe-area-inset-top)) 1.25rem 2rem !important;
+  }
+
+  .login-hero-panel img {
+    height: 56px !important;
+  }
+
+  .login-hero-panel h1 {
+    font-size: 1.7rem !important;
+    line-height: 1.2 !important;
+    margin-bottom: 0.875rem !important;
+  }
+
+  .login-hero-panel p {
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+  }
+
+  .login-hero-panel [style*="width: 400px"] {
+    width: 180px !important;
+    height: 180px !important;
+  }
+}
+
 /* Tables scroll wrapper */
 .table-responsive {
   overflow-x: auto;
