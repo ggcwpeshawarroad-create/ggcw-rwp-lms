@@ -184,31 +184,6 @@ export default function DashboardLayout({
         </header>
         <section className={`${styles.content} dashboard-content dashboard-role-${(role || "guest").toLowerCase()}`}>
           <div className={`animate-fade-in dashboard-content-inner dashboard-page-${pathname.split("/").filter(Boolean).join("-") || "home"}`}>
-            {['/admin', '/teacher', '/student'].includes(pathname) && (
-              <div className="dashboard-school-banner" style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '1.5rem', 
-                marginBottom: '2.5rem', 
-                padding: '1.5rem', 
-                background: 'white', 
-                borderRadius: '1.25rem', 
-                border: '1px solid var(--glass-border)',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.05)'
-              }}>
-                <div style={{ background: 'white', padding: '0.75rem', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} className="hide-on-mobile">
-                  <img src="/logo.png" alt="Logo" style={{ height: '60px', display: 'block' }} />
-                </div>
-                <div>
-                  <h2 style={{ color: 'var(--primary)', margin: 0, fontSize: '1.75rem', fontWeight: 800, letterSpacing: '-0.025em' }}>
-                    Govt. Graduate College
-                  </h2>
-                  <p style={{ color: 'var(--primary)', margin: 0, fontSize: '1.25rem', fontWeight: 600, opacity: 0.8 }}>
-                    Rawalpindi
-                  </p>
-                </div>
-              </div>
-            )}
             {children}
           </div>
         </section>
