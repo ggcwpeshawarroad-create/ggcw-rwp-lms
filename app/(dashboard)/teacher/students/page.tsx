@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, UserPlus, Search, Loader2, BookOpen, Trash2, Mail, X } from "lucide-react"
+import { Users, UserPlus, Search, Loader2, BookOpen, Trash2, Mail, X, CheckCircle } from "lucide-react"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { SearchableSelect } from "@/components/ui/SearchableSelect"
 
@@ -13,6 +13,7 @@ export default function TeacherStudentsPage() {
   const [search, setSearch] = useState("")
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [reviewingMap, setReviewingMap] = useState<Record<string, boolean>>({})
   
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
 
@@ -28,7 +29,7 @@ export default function TeacherStudentsPage() {
   const fetchData = async () => {
     try {
       const [eRes, cRes, uRes] = await Promise.all([
-        fetch("/api/enrollments"),
+        fetch("/api/enrollments?includePending=true"),
         fetch("/api/courses"),
         fetch("/api/admin/users?limit=500") // Fetch more users for the search dropdown
       ])
@@ -72,6 +73,29 @@ export default function TeacherStudentsPage() {
       console.error("Enrollment failed")
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleReview = async (id: string, status: "APPROVED" | "REJECTED") => {
+    setReviewingMap(prev => ({ ...prev, [id]: true }))
+    try {
+      const res = await fetch("/api/enrollments/" + id, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        fetchData()
+        setToast({ message: data.message || (status === "APPROVED" ? "Enrollment request approved" : "Enrollment request rejected"), type: "success" })
+      } else {
+        setToast({ message: data.error || "Failed to review request", type: "error" })
+      }
+    } catch (err) {
+      console.error("Review failed")
+      setToast({ message: "Network error. Please try again.", type: "error" })
+    } finally {
+      setReviewingMap(prev => ({ ...prev, [id]: false }))
     }
   }
 
@@ -150,6 +174,7 @@ export default function TeacherStudentsPage() {
                 <th style={{ padding: '0.75rem 1.25rem' }}>Program / Class</th>
                 <th style={{ padding: '0.75rem 1.25rem' }}>Enrolled Course</th>
                 <th style={{ padding: '0.75rem 1.25rem' }}>Date</th>
+                <th style={{ padding: "0.75rem 1.25rem" }}>Status</th>
                 <th style={{ padding: '0.75rem 1.25rem', textAlign: 'center' }}>Actions</th>
               </tr>
             </thead>
@@ -211,15 +236,42 @@ export default function TeacherStudentsPage() {
                     </span>
                   </td>
 
+                  <td style={{ padding: "1rem 1.25rem" }}>
+                    <span style={{ fontSize: "0.72rem", fontWeight: 800, padding: "0.25rem 0.65rem", borderRadius: "999px", background: (enr.status || "APPROVED") === "PENDING" ? "#fef3c7" : "#dcfce7", color: (enr.status || "APPROVED") === "PENDING" ? "#92400e" : "#166534" }}>
+                      {(enr.status || "APPROVED") === "PENDING" ? "Pending" : "Approved"}
+                    </span>
+                  </td>
+
                   {/* Actions */}
                   <td style={{ padding: '1rem 1.25rem', textAlign: 'center' }}>
-                    <button
-                      onClick={() => handleRemove(enr._id, enr.userId?.name)}
-                      style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', cursor: 'pointer', padding: '0.4rem 0.75rem', borderRadius: '0.5rem', fontSize: '0.75rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                      title="Remove Student"
-                    >
-                      <Trash2 size={13} /> Remove
-                    </button>
+                    {(enr.status || "APPROVED") === "PENDING" ? (
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+                        <button
+                          onClick={() => handleReview(enr._id, "APPROVED")}
+                          disabled={reviewingMap[enr._id]}
+                          style={{ background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.25)", color: "#059669", cursor: "pointer", padding: "0.4rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+                          title="Approve Request"
+                        >
+                          <CheckCircle size={13} /> Approve
+                        </button>
+                        <button
+                          onClick={() => handleReview(enr._id, "REJECTED")}
+                          disabled={reviewingMap[enr._id]}
+                          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", padding: "0.4rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+                          title="Reject Request"
+                        >
+                          <X size={13} /> Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleRemove(enr._id, enr.userId?.name)}
+                        style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#ef4444", cursor: "pointer", padding: "0.4rem 0.75rem", borderRadius: "0.5rem", fontSize: "0.75rem", fontWeight: 700, display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+                        title="Remove Student"
+                      >
+                        <Trash2 size={13} /> Remove
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

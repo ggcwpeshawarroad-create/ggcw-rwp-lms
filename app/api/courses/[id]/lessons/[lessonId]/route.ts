@@ -52,6 +52,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
       }
     }
+    if (session.user.role === "STUDENT") {
+      const isApprovedEnrollment = await Enrollment.exists({ courseId: id, userId: session.user.id, $or: [{ status: "APPROVED" }, { status: { $exists: false } }] })
+      if (!isApprovedEnrollment) {
+        return NextResponse.json({ error: "Enrollment approval required" }, { status: 403 })
+      }
+    }
+
     const lesson = await Lesson.findById(lessonId).lean()
     if (!lesson) return NextResponse.json({ error: "Lesson not found" }, { status: 404 })
 

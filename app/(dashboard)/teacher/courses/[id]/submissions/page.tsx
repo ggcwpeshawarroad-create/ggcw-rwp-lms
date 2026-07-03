@@ -6,18 +6,18 @@ import {
   ClipboardList, 
   Search, 
   Loader2, 
-  ArrowLeft, 
-  ExternalLink,
+  ArrowLeft,
   CheckCircle,
   XCircle,
   Clock,
-  User,
-  BookOpen,
   Download,
   Eye,
-  ChevronDown
 } from "lucide-react"
-import Link from "next/link"
+
+const submissionTabs = [
+  { value: "ASSIGNMENT", label: "Assignments" },
+  { value: "QUIZ", label: "Quizzes" },
+]
 
 export default function SubmissionsPage() {
   const { id } = useParams()
@@ -25,6 +25,7 @@ export default function SubmissionsPage() {
   const [submissions, setSubmissions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [activeTab, setActiveTab] = useState("ASSIGNMENT")
 
   const [selectedSubmission, setSelectedSubmission] = useState<any>(null)
   const [grade, setGrade] = useState("")
@@ -74,11 +75,22 @@ export default function SubmissionsPage() {
     }
   }
 
-  const filteredSubmissions = submissions.filter(s => 
-    s.userId?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.lessonId?.title?.toLowerCase().includes(search.toLowerCase()) ||
-    s.userId?.registrationNumber?.toLowerCase().includes(search.toLowerCase())
-  )
+  const tabCounts = submissionTabs.reduce((counts, tab) => {
+    counts[tab.value] = submissions.filter(sub => sub.lessonId?.type === tab.value).length
+    return counts
+  }, {} as Record<string, number>)
+
+  const filteredSubmissions = submissions.filter(s => {
+    const matchesTab = s.lessonId?.type === activeTab
+    const q = search.toLowerCase()
+    const matchesSearch =
+      s.userId?.name?.toLowerCase().includes(q) ||
+      s.lessonId?.title?.toLowerCase().includes(q) ||
+      s.userId?.registrationNumber?.toLowerCase().includes(q)
+
+    return matchesTab && matchesSearch
+  })
+  const selectedIsQuiz = selectedSubmission?.lessonId?.type === 'QUIZ'
 
   if (loading) {
     return (
@@ -89,10 +101,10 @@ export default function SubmissionsPage() {
   }
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+    <div style={{ width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}>
+          <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, padding: '0.25rem' }}>
             <ArrowLeft size={24} />
           </button>
           <div>
@@ -120,11 +132,44 @@ export default function SubmissionsPage() {
         </div>
       </div>
 
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'inline-flex', gap: '0.35rem', padding: '0.35rem', borderRadius: '0.75rem', background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+          {submissionTabs.map(tab => {
+            const isActive = activeTab === tab.value
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setActiveTab(tab.value)}
+                style={{
+                  border: 'none',
+                  borderRadius: '0.55rem',
+                  padding: '0.65rem 1rem',
+                  background: isActive ? 'white' : 'transparent',
+                  color: isActive ? 'var(--primary)' : '#64748b',
+                  boxShadow: isActive ? '0 1px 3px rgba(15,23,42,0.12)' : 'none',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                }}
+              >
+                {tab.label}
+                <span style={{ minWidth: 24, padding: '0.15rem 0.4rem', borderRadius: '999px', background: isActive ? 'rgba(1,65,28,0.1)' : 'white', color: isActive ? 'var(--primary)' : '#64748b', fontSize: '0.75rem', textAlign: 'center' }}>
+                  {tabCounts[tab.value] || 0}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       <div className="glass-card">
         {filteredSubmissions.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '5rem', opacity: 0.5 }}>
             <ClipboardList size={64} style={{ marginBottom: '1rem' }} />
-            <p>No submissions found matching your search.</p>
+            <p>No {activeTab === 'QUIZ' ? 'quiz' : 'assignment'} submissions found.</p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -220,11 +265,11 @@ export default function SubmissionsPage() {
         )}
       </div>
 
-      {/* Quiz Detail Modal */}
+      {/* Submission Detail Modal */}
       {selectedSubmission && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '2rem' }}>
-          <div className="glass-card animate-scale-in" style={{ maxWidth: '800px', width: '100%', maxHeight: '90vh', overflowY: 'auto', background: 'white' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1.5rem' }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '1.25rem' }}>
+          <div className="glass-card animate-scale-in" style={{ maxWidth: selectedIsQuiz ? '760px' : '800px', width: '100%', maxHeight: '82vh', overflowY: 'auto', background: 'white', padding: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.5rem', fontWeight: 800 }}>Submission Review</h3>
                 <p style={{ opacity: 0.6 }}>{selectedSubmission.userId?.name} — {selectedSubmission.lessonId?.title}</p>
@@ -237,18 +282,18 @@ export default function SubmissionsPage() {
               </button>
             </div>
 
-            {selectedSubmission.lessonId?.type === 'QUIZ' && (
+            {selectedIsQuiz && (
               <>
-                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
-                  <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', textAlign: 'center' }}>
+                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.75rem' }}>
+                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Auto-Score</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary)' }}>{selectedSubmission.score} / {selectedSubmission.totalQuestions}</div>
                   </div>
-                  <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', textAlign: 'center' }}>
+                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Percentage</div>
                     <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{Math.floor(selectedSubmission.score * 100 / selectedSubmission.totalQuestions)}%</div>
                   </div>
-                  <div style={{ background: '#f8fafc', padding: '1.25rem', borderRadius: '1rem', textAlign: 'center' }}>
+                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.75rem', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '0.5rem' }}>Auto-Status</div>
                     <div style={{ fontSize: '1.1rem', fontWeight: 700, color: selectedSubmission.score >= (selectedSubmission.totalQuestions/2) ? '#10b981' : '#ef4444' }}>
                       {selectedSubmission.score >= (selectedSubmission.totalQuestions/2) ? 'PASSED' : 'FAILED'}
@@ -256,17 +301,17 @@ export default function SubmissionsPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', marginBottom: '3rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   <h4 style={{ fontWeight: 700, fontSize: '1.1rem' }}>Detailed Responses</h4>
                   {selectedSubmission.lessonId?.quizData?.map((q: any, qi: number) => {
                     const subAns = selectedSubmission.answers?.find((a: any) => a.questionIndex === qi)
                     return (
-                      <div key={qi} style={{ padding: '1.5rem', border: '1px solid #f1f5f9', borderRadius: '1rem' }}>
-                        <h4 style={{ fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <div key={qi} style={{ padding: '1.25rem', border: '1px solid #f1f5f9', borderRadius: '0.75rem' }}>
+                        <h4 style={{ fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                           <span style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem' }}>{qi + 1}</span>
                           {q.question}
                         </h4>
-                        <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '1rem' }}>
+                        <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0.75rem' }}>
                           {q.options?.map((opt: string, oi: number) => {
                             const isSelected = subAns?.answerIndex === oi
                             const isCorrect = q.correctAnswer === oi
@@ -280,7 +325,7 @@ export default function SubmissionsPage() {
                               background = '#f0fdf4'
                             }
                             return (
-                              <div key={oi} style={{ padding: '0.875rem 1.25rem', borderRadius: '0.75rem', border: `1.5px solid ${borderColor}`, background, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s' }}>
+                              <div key={oi} style={{ padding: '0.75rem 1rem', borderRadius: '0.6rem', border: `1.5px solid ${borderColor}`, background, fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s' }}>
                                 <span>{opt}</span>
                                 <div style={{ display: 'flex', gap: '0.4rem' }}>
                                   {isSelected && !isCorrect && <XCircle size={16} color="#ef4444" />}
@@ -297,47 +342,51 @@ export default function SubmissionsPage() {
               </>
             )}
 
-            <div style={{ marginTop: '2.5rem', borderTop: '2px solid #f1f5f9', paddingTop: '2.5rem' }}>
-              <h4 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Evaluation & Feedback</h4>
-              <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Grade</label>
-                  <input 
-                    type="text" 
-                    value={grade}
-                    placeholder="e.g. A, 90, Pass"
-                    onChange={e => setGrade(e.target.value)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', outline: 'none' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Private Feedback to Student</label>
-                  <textarea 
-                    value={feedback}
-                    placeholder="Provide constructive feedback..."
-                    onChange={e => setFeedback(e.target.value)}
-                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', outline: 'none', minHeight: '100px', resize: 'vertical' }}
-                  ></textarea>
+            {!selectedIsQuiz && (
+              <div style={{ marginTop: '2rem', borderTop: '2px solid #f1f5f9', paddingTop: '2rem' }}>
+                <h4 style={{ fontWeight: 700, marginBottom: '1.25rem' }}>Evaluation & Feedback</h4>
+                <div className="responsive-grid" style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Grade</label>
+                    <input 
+                      type="text" 
+                      value={grade}
+                      placeholder="e.g. A, 90, Pass"
+                      onChange={e => setGrade(e.target.value)}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 700, color: '#64748b', marginBottom: '0.5rem', textTransform: 'uppercase' }}>Private Feedback to Student</label>
+                    <textarea 
+                      value={feedback}
+                      placeholder="Provide constructive feedback..."
+                      onChange={e => setFeedback(e.target.value)}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #e2e8f0', outline: 'none', minHeight: '100px', resize: 'vertical' }}
+                    ></textarea>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            <div style={{ marginTop: '2.5rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+            <div style={{ marginTop: selectedIsQuiz ? '1.5rem' : '2rem', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
               <button 
                 onClick={() => setSelectedSubmission(null)} 
                 style={{ padding: '0.75rem 2rem', background: '#f1f5f9', border: 'none', borderRadius: '0.5rem', fontWeight: 600, cursor: 'pointer' }}
               >
-                Cancel
+                {selectedIsQuiz ? 'Close' : 'Cancel'}
               </button>
-              <button 
-                onClick={saveGrade} 
-                className="btn btn-primary" 
-                disabled={isUpdating}
-                style={{ padding: '0.75rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-              >
-                {isUpdating ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
-                Save Evaluation
-              </button>
+              {!selectedIsQuiz && (
+                <button 
+                  onClick={saveGrade} 
+                  className="btn btn-primary" 
+                  disabled={isUpdating}
+                  style={{ padding: '0.75rem 2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                >
+                  {isUpdating ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+                  Save Evaluation
+                </button>
+              )}
             </div>
           </div>
         </div>

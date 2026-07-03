@@ -50,7 +50,7 @@ export async function GET(req: Request) {
     const coursesWithCounts = await Promise.all(
       courses.map(async (course) => {
         const [enrollmentCount, teacherEnrollment] = await Promise.all([
-          Enrollment.countDocuments({ courseId: course._id, userId: { $in: studentUserIds } }),
+          Enrollment.countDocuments({ courseId: course._id, userId: { $in: studentUserIds }, $or: [{ status: "APPROVED" }, { status: { $exists: false } }] }),
           Enrollment.findOne({ courseId: course._id, userId: { $in: teacherUserIds } })
             .populate("userId", "name email role")
             .lean(),

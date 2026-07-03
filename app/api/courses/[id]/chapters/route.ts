@@ -12,7 +12,28 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     await connectDB()
+
+    const course = await Course.findById(id)
+    if (!course) return NextResponse.json({ error: "Course not found" }, { status: 404 })
+
+    if (session.user.role === "STUDENT") {
+      const isApprovedEnrollment = await Enrollment.exists({ courseId: id, userId: session.user.id, $or: [{ status: "APPROVED" }, { status: { $exists: false } }] })
+      if (!isApprovedEnrollment) {
+        return NextResponse.json({ error: "Enrollment approval required" }, { status: 403 })
+      }
+    } else if (session.user.role === "TEACHER" && course.teacherId?.toString() !== session.user.id) {
+      const isEnrolledTeacher = await Enrollment.exists({ courseId: id, userId: session.user.id })
+      if (!isEnrolledTeacher) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      }
+    }
+
     const chapters = await Chapter.find({ courseId: id }).sort({ order: 1 })
     return NextResponse.json(chapters)
   } catch (error) {

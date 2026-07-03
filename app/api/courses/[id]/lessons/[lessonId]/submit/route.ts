@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Lesson from "@/models/Lesson"
 import Submission from "@/models/Submission"
+import Enrollment from "@/models/Enrollment"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -20,6 +21,13 @@ export async function POST(
     const { answers, assignmentFile } = body
 
     await connectDB()
+
+    if (session.user.role === "STUDENT") {
+      const isApprovedEnrollment = await Enrollment.exists({ courseId, userId: session.user.id, $or: [{ status: "APPROVED" }, { status: { $exists: false } }] })
+      if (!isApprovedEnrollment) {
+        return NextResponse.json({ error: "Enrollment approval required" }, { status: 403 })
+      }
+    }
 
     const lesson = await Lesson.findById(lessonId)
     if (!lesson) {

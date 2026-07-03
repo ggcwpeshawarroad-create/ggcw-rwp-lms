@@ -242,7 +242,7 @@ export default function NewLessonPage() {
   const TypeIcon = typeInfo?.icon
 
   return (
-    <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 0' }} className="animate-fade-in">
+    <div style={{ width: '100%' }} className="animate-fade-in">
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2.5rem' }}>
         <button onClick={() => router.back()} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, display: 'flex', alignItems: 'center' }}>

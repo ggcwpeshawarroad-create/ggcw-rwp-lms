@@ -93,7 +93,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Teachers can only mark attendance for their assigned courses" }, { status: 401 })
     }
 
-    const enrollments = await Enrollment.find({ courseId })
+    const enrollments = await Enrollment.find({ courseId, $or: [{ status: "APPROVED" }, { status: { $exists: false } }] })
       .populate("userId", "role")
       .lean()
     const enrolledStudentIds = new Set(

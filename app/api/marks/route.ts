@@ -5,6 +5,8 @@ import connectDB from "@/lib/db"
 import { authOptions } from "@/lib/auth"
 import Course from "@/models/Course"
 import Submission from "@/models/Submission"
+import User from "@/models/User"
+import Lesson from "@/models/Lesson"
 
 async function getTeacherCourseIds(teacherId: string) {
   const courses = await Course.find({ teacherId }, "_id").lean()

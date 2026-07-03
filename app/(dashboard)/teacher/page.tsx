@@ -46,7 +46,7 @@ export default async function TeacherPage() {
     // Add student enrollment count to each course.
     courses = await Promise.all(
       rawCourses.map(async (c: any) => {
-        const count = await Enrollment.countDocuments({ courseId: c._id, userId: { $in: studentUserIds } })
+        const count = await Enrollment.countDocuments({ courseId: c._id, userId: { $in: studentUserIds }, $or: [{ status: "APPROVED" }, { status: { $exists: false } }] })
         totalStudents += count
         return { ...c, enrollmentCount: count }
       })

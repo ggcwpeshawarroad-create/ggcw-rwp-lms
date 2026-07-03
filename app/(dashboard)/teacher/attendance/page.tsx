@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { BookOpen, CalendarDays, CheckCircle2, ClipboardCheck, Download, Loader2, Save } from "lucide-react"
+import { BookOpen, CalendarDays, ClipboardCheck, Download, Loader2, Save } from "lucide-react"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { formatText } from "@/lib/utils"
 
@@ -111,6 +111,7 @@ export default function TeacherAttendancePage() {
   }
   const percentage = (count: number, total = attendanceSummary.totalRecords) => total ? Math.round((count / total) * 100) + "%" : "0%"
   const presentCount = attendanceSummary.present
+  const getStatusOption = (status: string) => statusOptions.find(option => option.value === status) || statusOptions[0]
   const getStudentSummary = (studentId: string) => {
     const rows = courseAttendance.flatMap((sheet: any) =>
       sheet.records
@@ -266,14 +267,26 @@ export default function TeacherAttendancePage() {
                     </td>
                     <td style={{ padding: "1rem", color: "#475569", fontWeight: 700 }}>{student?.registrationNumber || "-"}</td>
                     <td style={{ padding: "1rem" }}>
-                      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                      <select
+                        value={record.status}
+                        onChange={(e) => updateRecord(student._id, "status", e.target.value)}
+                        style={{
+                          minWidth: "130px",
+                          padding: "0.55rem 0.75rem",
+                          borderRadius: "0.5rem",
+                          border: `1px solid ${getStatusOption(record.status).color}`,
+                          background: getStatusOption(record.status).bg,
+                          color: getStatusOption(record.status).color,
+                          fontSize: "0.8rem",
+                          fontWeight: 800,
+                          outline: "none",
+                          cursor: "pointer",
+                        }}
+                      >
                         {statusOptions.map(option => (
-                          <button key={option.value} type="button" onClick={() => updateRecord(student._id, "status", option.value)} style={{ border: `1px solid ${record.status === option.value ? option.color : "var(--glass-border)"}`, background: record.status === option.value ? option.bg : "white", color: record.status === option.value ? option.color : "#64748b", borderRadius: "0.5rem", padding: "0.4rem 0.65rem", fontSize: "0.75rem", fontWeight: 800, cursor: "pointer" }}>
-                            {record.status === option.value && <CheckCircle2 size={12} style={{ marginRight: "0.25rem", verticalAlign: "text-bottom" }} />}
-                            {option.label}
-                          </button>
+                          <option key={option.value} value={option.value}>{option.label}</option>
                         ))}
-                      </div>
+                      </select>
                     </td>
                     <td style={{ padding: "1rem" }}>
                       <input value={record.note} onChange={(e) => updateRecord(student._id, "note", e.target.value)} placeholder="Optional note" style={{ width: "100%", minWidth: "180px", padding: "0.6rem 0.75rem", borderRadius: "0.5rem", border: "1px solid var(--glass-border)", outline: "none" }} />

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Search, BookOpen, Loader2, CheckCircle, ArrowRight, Lock } from "lucide-react"
+import { Search, BookOpen, Loader2, CheckCircle, ArrowRight, Lock, Clock } from "lucide-react"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import Link from "next/link"
 import { formatText } from "@/lib/utils"
@@ -20,7 +20,7 @@ export default function StudentBrowsePage() {
     try {
       const [cRes, eRes] = await Promise.all([
         fetch("/api/courses?browse=true"),
-        fetch("/api/enrollments")
+        fetch("/api/enrollments?includePending=true")
       ])
       const cData = await cRes.json()
       const eData = await eRes.json()
@@ -43,7 +43,7 @@ export default function StudentBrowsePage() {
       })
       if (res.ok) {
         await fetchData()
-        setToast({ message: "Enrolled successfully! You can now access the course.", type: "success" })
+        setToast({ message: "Enrollment request sent. Please wait for teacher approval.", type: "success" })
       } else {
         const d = await res.json()
         setToast({ message: d.error || "Enrollment failed", type: "error" })
@@ -108,7 +108,9 @@ export default function StudentBrowsePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
           {filteredCourses.map((course, idx) => {
             const enrollment = getEnrollment(course._id)
-            const isEnrolled = !!enrollment
+            const enrollmentStatus = enrollment?.status || "APPROVED"
+            const isEnrolled = !!enrollment && enrollmentStatus === "APPROVED"
+            const isPending = enrollmentStatus === "PENDING"
 
             return (
               <div
@@ -135,6 +137,11 @@ export default function StudentBrowsePage() {
                   <div style={{ position: 'absolute', bottom: '0.75rem', left: '1rem', background: 'rgba(0,0,0,0.35)', color: 'white', padding: '0.2rem 0.65rem', borderRadius: '0.5rem', fontSize: '0.72rem', fontWeight: 700, backdropFilter: 'blur(4px)' }}>
                     {course.enrollmentCount || 0} Learners
                   </div>
+                  {isPending && (
+                    <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: '#f59e0b', color: 'white', padding: '0.25rem 0.65rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Clock size={12} /> Pending
+                    </div>
+                  )}
                   {isEnrolled && (
                     <div style={{ position: 'absolute', top: '0.75rem', right: '0.75rem', background: '#10b981', color: 'white', padding: '0.25rem 0.65rem', borderRadius: '0.5rem', fontSize: '0.7rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                       <CheckCircle size={12} /> Enrolled
@@ -196,6 +203,14 @@ export default function StudentBrowsePage() {
                         >
                           Go to Course <ArrowRight size={15} />
                         </Link>
+                    ) : isPending ? (
+                      <button
+                        disabled
+                        className="btn"
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.6rem 1rem', fontSize: '0.875rem', background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}
+                      >
+                        <Clock size={14} /> Pending Approval
+                      </button>
                     ) : (
                       <button
                         onClick={() => handleEnroll(course._id)}
@@ -204,8 +219,8 @@ export default function StudentBrowsePage() {
                         style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.6rem 1rem', fontSize: '0.875rem' }}
                       >
                         {enrollingMap[course._id]
-                          ? <><Loader2 className="animate-spin" size={16} /> Enrolling...</>
-                          : <><Lock size={14} /> Enroll Now</>
+                          ? <><Loader2 className="animate-spin" size={16} /> Sending...</>
+                          : <><Lock size={14} /> Request Enrollment</>
                         }
                       </button>
                     )}

@@ -15,7 +15,7 @@ export default async function StudentPage() {
   if (session?.user?.id) {
     try {
       await connectDB()
-      const enrollments = await Enrollment.find({ userId: session.user.id })
+      const enrollments = await Enrollment.find({ userId: session.user.id, $or: [{ status: "APPROVED" }, { status: { $exists: false } }] })
         .populate("courseId", "title description program classLevel semester teacherId")
         .sort({ createdAt: -1 })
         .lean()

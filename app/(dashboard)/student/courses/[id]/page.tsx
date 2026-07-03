@@ -61,6 +61,7 @@ export default function CoursePlayerPage() {
   const [showSidebar, setShowSidebar] = useState(true)
 
   // Quiz States
+  const [quizStarted, setQuizStarted] = useState(false)
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({})
   const [quizResult, setQuizResult] = useState<{ score: number; total: number } | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -76,6 +77,7 @@ export default function CoursePlayerPage() {
   }, [])
 
   useEffect(() => {
+    setQuizStarted(false)
     setQuizAnswers({})
     setQuizResult(null)
     setSubmissionData(null)
@@ -360,22 +362,26 @@ export default function CoursePlayerPage() {
                         <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Quiz Completed!</h3>
                         <p style={{ fontSize: '2rem', fontWeight: 800, color: '#4f46e5', margin: '1rem 0' }}>{quizResult.score} {' / '} {quizResult.total}</p>
                         <p style={{ opacity: 0.6 }}>Your score is {Math.floor(quizResult.score * 100 / (quizResult.total || 1))}%</p>
-                         {(submissionData?.grade || submissionData?.feedback) && (
-                            <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'white', borderRadius: '1rem', border: '1px solid #e2e8f0', textAlign: 'left' }}>
-                              <h4 style={{ fontWeight: 700, fontSize: '0.85rem', color: '#64748b', textTransform: 'uppercase', marginBottom: '0.75rem' }}>Instructor Marks &amp; Feedback</h4>
-                              {submissionData.grade && (
-                                <p style={{ fontWeight: 800, fontSize: '1.1rem', color: '#4f46e5' }}>Mark: {submissionData.grade}</p>
-                              )}
-                              {submissionData.feedback && (
-                                <p style={{ fontSize: '0.95rem', lineHeight: '1.65', color: '#334155', fontStyle: 'italic', marginTop: '0.5rem' }}>"{submissionData.feedback}"</p>
-                              )}
-                            </div>
-                          )}
                         {selectedLesson.isRetakeAllowed && (
-                          <button onClick={() => { setQuizAnswers({}); setQuizResult(null); setError(""); }} className="btn btn-primary" style={{ marginTop: '2rem' }}>Retake Quiz</button>
+                          <button onClick={() => { setQuizStarted(false); setQuizAnswers({}); setQuizResult(null); setError(""); }} className="btn btn-primary" style={{ marginTop: '2rem' }}>Retake Quiz</button>
                         )}
                         {!selectedLesson.isRetakeAllowed && (
                           <p style={{ marginTop: '2rem', fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic' }}>Retakes are not allowed for this quiz.</p>
+                        )}
+                     </div>
+                   ) : !quizStarted ? (
+                     <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '1.5rem', border: '1px solid #e2e8f0' }}>
+                        <HelpCircle size={56} color="#f59e0b" style={{ marginBottom: '1.25rem' }} />
+                        <h3 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: '0.75rem' }}>Ready to start?</h3>
+                        <p style={{ color: '#64748b', lineHeight: 1.65, maxWidth: '520px', margin: '0 auto 1.5rem' }}>
+                          This quiz has {selectedLesson.quizData?.length || 0} question{(selectedLesson.quizData?.length || 0) === 1 ? '' : 's'}. Click start when you are ready to answer.
+                        </p>
+                        {selectedLesson.endDate && new Date() > new Date(selectedLesson.endDate) ? (
+                          <div style={{ color: '#ef4444', fontWeight: 700 }}>Deadline passed. You can no longer start this quiz.</div>
+                        ) : (
+                          <button onClick={() => setQuizStarted(true)} className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '1rem 2rem' }}>
+                            <Play size={18} /> Start Quiz
+                          </button>
                         )}
                      </div>
                    ) : (

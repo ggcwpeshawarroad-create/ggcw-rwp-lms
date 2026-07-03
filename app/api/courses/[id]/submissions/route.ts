@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import connectDB from "@/lib/db"
 import Submission from "@/models/Submission"
+import Enrollment from "@/models/Enrollment"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
@@ -21,6 +22,10 @@ export async function GET(
     // STUDENT: fetch only their own submission for a specific lesson
     if (session.user?.role === "STUDENT") {
       if (!lessonId) return NextResponse.json([], { status: 200 })
+      const isApprovedEnrollment = await Enrollment.exists({ courseId: id, userId: session.user.id, $or: [{ status: "APPROVED" }, { status: { $exists: false } }] })
+      if (!isApprovedEnrollment) {
+        return NextResponse.json({ error: "Enrollment approval required" }, { status: 403 })
+      }
       const submissions = await Submission.find({
         courseId: id,
         lessonId,

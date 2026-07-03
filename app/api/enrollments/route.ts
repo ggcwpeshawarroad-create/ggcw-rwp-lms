@@ -16,12 +16,17 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
     const userId = searchParams.get("userId")
     const courseId = searchParams.get("courseId")
+    const status = searchParams.get("status")
+    const includePending = searchParams.get("includePending") === "true"
 
     if (courseId && !Types.ObjectId.isValid(courseId)) {
       return NextResponse.json({ error: "Invalid courseId" }, { status: 400 })
     }
     if (userId && userId !== "self" && !Types.ObjectId.isValid(userId)) {
       return NextResponse.json({ error: "Invalid userId" }, { status: 400 })
+    }
+    if (status && !["PENDING", "APPROVED", "REJECTED"].includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 })
     }
 
     await connectDB()
@@ -53,6 +58,14 @@ export async function GET(req: Request) {
     } else {
       // Admin can filter by userId if provided
       if (userId) query.userId = userId
+    }
+
+    if (status) {
+      query.status = status
+    } else if (includePending) {
+      query.$or = [{ status: "APPROVED" }, { status: "PENDING" }, { status: { $exists: false } }]
+    } else {
+      query.$or = [{ status: "APPROVED" }, { status: { $exists: false } }]
     }
 
     const enrollments = await Enrollment.find(query)
@@ -160,23 +173,61 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. Check existing enrollment
+    // 2. Check existing enrollment or request
     const existing = await Enrollment.findOne({ userId, courseId })
     if (existing) {
-      return NextResponse.json({ error: "Already enrolled in this course" }, { status: 400 })
+      const existingStatus = existing.status || "APPROVED"
+      if (existingStatus === "PENDING") {
+        return NextResponse.json({ error: "Enrollment request is already pending teacher approval" }, { status: 400 })
+      }
+      if (existingStatus === "APPROVED") {
+        return NextResponse.json({ error: "Already enrolled in this course" }, { status: 400 })
+      }
+      if (session.user.role === "STUDENT") {
+        existing.status = "PENDING"
+        existing.reviewedBy = undefined
+        existing.reviewedAt = undefined
+        await existing.save()
+
+        await Log.create({
+          userId: session.user.id,
+          action: "ENROLLMENT_REQUESTED",
+          details: "Requested enrollment for course: " + course.title
+        })
+
+        return NextResponse.json({ message: "Enrollment request sent. Please wait for teacher approval.", enrollment: existing })
+      }
+
+      existing.status = "APPROVED"
+      existing.reviewedBy = session.user.id
+      existing.reviewedAt = new Date()
+      await existing.save()
+
+      await Log.create({
+        userId: session.user.id,
+        action: targetUser.role === "TEACHER" ? "TEACHER_ENROLLED" : "STUDENT_ENROLLED",
+        details: "Enrolled into course: " + course.title
+      })
+
+      return NextResponse.json({ message: "Enrolled successfully", enrollment: existing })
     }
 
-    // 3. Create Enrollment
-    const enrollment = await Enrollment.create({ userId, courseId })
+    const enrollmentStatus = session.user.role === "STUDENT" ? "PENDING" : "APPROVED"
+
+    // 3. Create Enrollment or request
+    const enrollment = await Enrollment.create({ userId, courseId, status: enrollmentStatus })
 
     // 4. Log the activity
     await Log.create({
       userId: session.user.id,
-      action: targetUser.role === "TEACHER" ? "TEACHER_ENROLLED" : "STUDENT_ENROLLED",
-      details: `Enrolled into course: ${course.title}`
+      action: targetUser.role === "TEACHER" ? "TEACHER_ENROLLED" : enrollmentStatus === "PENDING" ? "ENROLLMENT_REQUESTED" : "STUDENT_ENROLLED",
+      details: enrollmentStatus === "PENDING" ? "Requested enrollment for course: " + course.title : "Enrolled into course: " + course.title
     })
 
-    return NextResponse.json({ message: "Enrolled successfully", enrollment })
+    return NextResponse.json({
+      message: enrollmentStatus === "PENDING" ? "Enrollment request sent. Please wait for teacher approval." : "Enrolled successfully",
+      enrollment
+    })
   } catch (error) {
     console.error("Enrollment error:", error)
     return NextResponse.json({ error: "Failed to enroll user" }, { status: 500 })
