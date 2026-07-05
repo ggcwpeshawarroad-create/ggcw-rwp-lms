@@ -1,11 +1,13 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { PlusCircle, BookOpen, Users, ClipboardList, TrendingUp, ArrowRight } from "lucide-react"
+import { PlusCircle, BookOpen, Users, ClipboardList, FileCheck2, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import connectDB from "@/lib/db"
 import Course from "@/models/Course"
 import User from "@/models/User"
 import Enrollment from "@/models/Enrollment"
+import Lesson from "@/models/Lesson"
+import Submission from "@/models/Submission"
 
 export default async function TeacherPage() {
   const session = await getServerSession(authOptions)
@@ -13,6 +15,8 @@ export default async function TeacherPage() {
   let courses: any[] = []
   let totalStudents = 0
   let courseCount = 0
+  let lessonCount = 0
+  let submissionCount = 0
 
   if (session?.user?.id) {
     await connectDB()
@@ -40,6 +44,13 @@ export default async function TeacherPage() {
 
     const rawCourses = Array.from(mergedCourses.values())
     courseCount = rawCourses.length
+    const courseIds = rawCourses.map((course: any) => course._id)
+    const [totalLessons, totalSubmissions] = await Promise.all([
+      Lesson.countDocuments({ courseId: { $in: courseIds } }),
+      Submission.countDocuments({ courseId: { $in: courseIds } }),
+    ])
+    lessonCount = totalLessons
+    submissionCount = totalSubmissions
     const studentIds = await User.find({ role: "STUDENT" }, "_id").lean()
     const studentUserIds = studentIds.map((student: any) => student._id)
 
@@ -56,8 +67,8 @@ export default async function TeacherPage() {
   const stats = [
     { title: "Total Courses", value: String(courseCount), icon: BookOpen, color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" },
     { title: "Active Students", value: String(totalStudents), icon: Users, color: "#10b981", bg: "rgba(16, 185, 129, 0.1)" },
-    { title: "Assigned Quizzes", value: "0", icon: ClipboardList, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
-    { title: "Average Score", value: "0%", icon: TrendingUp, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
+    { title: "Total Lessons", value: String(lessonCount), icon: ClipboardList, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
+    { title: "Submissions", value: String(submissionCount), icon: FileCheck2, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
   ]
 
   const gradients = [

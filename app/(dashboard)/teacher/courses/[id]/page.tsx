@@ -14,7 +14,6 @@ import {
   Edit, 
   Trash2, 
   Loader2,
-  Eye,
   BookOpen,
   Megaphone,
   Images
@@ -152,9 +151,6 @@ export default function CourseBuilderPage() {
             <ClipboardList size={18} /> Submissions
           </button>
           )}
-          <button className="btn course-builder-secondary-action">
-            <Eye size={18} /> Preview
-          </button>
           {(course?.isOwner || isEnrolled) && (
           <button onClick={() => setShowAddChapter(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Plus size={18} /> Add Chapter

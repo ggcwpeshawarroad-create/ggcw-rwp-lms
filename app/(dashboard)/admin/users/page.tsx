@@ -8,10 +8,11 @@ import { SearchableSelect } from "@/components/ui/SearchableSelect"
 import { formatText } from "@/lib/utils"
 
 export default function UsersPage() {
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<any[]>([])
   const [courses, setCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [activeRole, setActiveRole] = useState<"STUDENT" | "TEACHER">("STUDENT")
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [totalUsers, setTotalUsers] = useState(0)
@@ -32,7 +33,7 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers()
     fetchCourses()
-  }, [page, search])
+  }, [page, search, activeRole])
 
   const fetchUserEnrollments = async (userId: string) => {
     try {
@@ -66,7 +67,13 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/admin/users?page=${page}&limit=${limit}&search=${search}`)
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        search,
+        role: activeRole,
+      })
+      const res = await fetch(`/api/admin/users?${params.toString()}`)
       const data = await res.json()
       if (res.ok) {
         setUsers(data.users)
@@ -149,6 +156,11 @@ export default function UsersPage() {
     setPage(1) // Reset to first page on search
   }
 
+  const handleRoleChange = (role: "STUDENT" | "TEACHER") => {
+    setActiveRole(role)
+    setPage(1)
+  }
+
   return (
     <div style={{ position: 'relative' }}>
       <div className="glass-card" style={{ marginBottom: '2rem' }}>
@@ -159,7 +171,7 @@ export default function UsersPage() {
             </div>
             <div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>User Directory</h2>
-              <p style={{ opacity: 0.6, fontSize: '0.875rem' }}>Total Users: {totalUsers}</p>
+              <p style={{ opacity: 0.6, fontSize: '0.875rem' }}>Total {activeRole === "STUDENT" ? "Students" : "Teachers"}: {totalUsers}</p>
             </div>
           </div>
           
@@ -185,8 +197,40 @@ export default function UsersPage() {
       </div>
 
       <div className="glass-card">
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+          {[
+            { role: "STUDENT" as const, label: "Students" },
+            { role: "TEACHER" as const, label: "Teachers" },
+          ].map(tab => {
+            const isActive = activeRole === tab.role
+            return (
+              <button
+                key={tab.role}
+                type="button"
+                onClick={() => handleRoleChange(tab.role)}
+                style={{
+                  padding: '0.65rem 1rem',
+                  borderRadius: '0.75rem',
+                  border: isActive ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                  background: isActive ? 'var(--primary)' : 'white',
+                  color: isActive ? 'white' : '#475569',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  minWidth: '110px'
+                }}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '4rem' }}><Loader2 className="animate-spin" size={48} color="var(--primary)" /></div>
+        ) : users.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', color: '#64748b', border: '1px dashed #e2e8f0', borderRadius: '1rem', background: '#f8fafc' }}>
+            No {activeRole === "STUDENT" ? "students" : "teachers"} found.
+          </div>
         ) : (
           <>
             <div style={{ overflowX: 'auto' }}>
@@ -256,7 +300,7 @@ export default function UsersPage() {
                         <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', alignItems: 'center', minWidth: '180px' }}>
                           {user.role === "STUDENT" && (
                             <button 
-                              onClick={() => { setSelectedUser(user); setShowAssignModal(true); }}
+                              onClick={() => handleOpenAssign(user)}
                               className="btn-action-primary"
                               style={{ 
                                 padding: '0.5rem 0.8rem', 

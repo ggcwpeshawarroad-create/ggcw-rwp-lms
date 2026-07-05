@@ -1,9 +1,12 @@
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { PlayCircle, Trophy, BookOpen, Clock, Star, Calendar, ArrowRight } from "lucide-react"
+import { PlayCircle, Trophy, BookOpen, ClipboardCheck, Star, Calendar, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import connectDB from "@/lib/db"
 import Enrollment from "@/models/Enrollment"
+import Lesson from "@/models/Lesson"
+import Submission from "@/models/Submission"
+import { formatText } from "@/lib/utils"
 import "@/models/Course"
 
 export default async function StudentPage() {
@@ -11,6 +14,9 @@ export default async function StudentPage() {
 
   let enrolledCourses: any[] = []
   let enrollmentCount = 0
+  let lessonCount = 0
+  let submissionCount = 0
+  let upcomingDeadlines: any[] = []
 
   if (session?.user?.id) {
     try {
@@ -24,6 +30,28 @@ export default async function StudentPage() {
         .map((e: any) => e.courseId)
         .filter(Boolean)
       enrollmentCount = enrolledCourses.length
+
+      const courseIds = enrolledCourses.map((course: any) => course._id)
+      if (courseIds.length > 0) {
+        const now = new Date()
+        const [lessons, submissions, deadlines] = await Promise.all([
+          Lesson.countDocuments({ courseId: { $in: courseIds } }),
+          Submission.countDocuments({ userId: session.user.id, courseId: { $in: courseIds } }),
+          Lesson.find({
+            courseId: { $in: courseIds },
+            type: { $in: ["QUIZ", "ASSIGNMENT"] },
+            endDate: { $gte: now },
+          })
+            .populate("courseId", "title")
+            .sort({ endDate: 1 })
+            .limit(5)
+            .lean(),
+        ])
+
+        lessonCount = lessons
+        submissionCount = submissions
+        upcomingDeadlines = deadlines
+      }
     } catch (error) {
       console.error("Failed to load student dashboard:", error)
     }
@@ -31,9 +59,9 @@ export default async function StudentPage() {
 
   const stats = [
     { title: "Courses Enrolled", value: String(enrollmentCount), icon: PlayCircle, color: "#3b82f6", bg: "rgba(59, 130, 246, 0.1)" },
-    { title: "Completed Courses", value: "0", icon: BookOpen, color: "#10b981", bg: "rgba(16, 185, 129, 0.1)" },
-    { title: "Learning Hours", value: "0h", icon: Clock, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
-    { title: "Achievements", value: "0", icon: Trophy, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
+    { title: "Upcoming Deadlines", value: String(upcomingDeadlines.length), icon: Calendar, color: "#10b981", bg: "rgba(16, 185, 129, 0.1)" },
+    { title: "Lessons Available", value: String(lessonCount), icon: BookOpen, color: "#f59e0b", bg: "rgba(245, 158, 11, 0.1)" },
+    { title: "Submitted Work", value: String(submissionCount), icon: ClipboardCheck, color: "#8b5cf6", bg: "rgba(139, 92, 246, 0.1)" },
   ]
 
   // Gradient palette for course cards
@@ -127,21 +155,23 @@ export default async function StudentPage() {
                 <Link
                   key={course._id}
                   href={`/student/courses/${course._id}`}
-                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '1rem', padding: '1rem', borderRadius: '1rem', border: '1px solid #f1f5f9', background: '#fafafa', transition: 'background 0.2s' }}
+                  style={{ textDecoration: 'none', display: 'flex', alignItems: 'stretch', gap: '1rem', padding: '0.85rem', borderRadius: '1rem', border: '1px solid #f1f5f9', background: 'white', boxShadow: '0 6px 16px rgba(15,23,42,0.04)', overflow: 'hidden' }}
                 >
-                  {/* Mini thumbnail */}
-                  <div style={{ width: '48px', height: '48px', borderRadius: '0.75rem', background: gradients[idx % gradients.length], display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <BookOpen size={20} color="rgba(255,255,255,0.9)" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 700, color: '#1e293b', margin: 0, fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{course.title}</p>
-                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
-                      {course.program && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#4f46e5', background: 'rgba(79,70,229,0.08)', padding: '0.1rem 0.4rem', borderRadius: '0.3rem' }}>{course.program}</span>}
-                      {course.classLevel && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#059669', background: 'rgba(16,185,129,0.08)', padding: '0.1rem 0.4rem', borderRadius: '0.3rem' }}>{course.classLevel}</span>}
-                      {course.semester && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#d97706', background: 'rgba(245,158,11,0.08)', padding: '0.1rem 0.4rem', borderRadius: '0.3rem' }}>{course.semester}</span>}
+                  <div style={{ width: '86px', minHeight: '76px', borderRadius: '0.85rem', background: gradients[idx % gradients.length], display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
+                    <BookOpen size={28} color="rgba(255,255,255,0.88)" />
+                    <div style={{ position: 'absolute', left: '0.55rem', bottom: '0.45rem', color: 'white', background: 'rgba(0,0,0,0.28)', padding: '0.12rem 0.45rem', borderRadius: '0.4rem', fontSize: '0.62rem', fontWeight: 800 }}>
+                      Course
                     </div>
                   </div>
-                  <ArrowRight size={16} color="#94a3b8" style={{ flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0, alignSelf: 'center' }}>
+                    <p style={{ fontWeight: 800, color: '#1e293b', margin: 0, fontSize: '0.98rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatText(course.title)}</p>
+                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.3rem', flexWrap: 'wrap' }}>
+                      {course.program && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#4f46e5', background: 'rgba(79,70,229,0.08)', padding: '0.1rem 0.4rem', borderRadius: '0.3rem' }}>{formatText(course.program)}</span>}
+                      {course.classLevel && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#059669', background: 'rgba(16,185,129,0.08)', padding: '0.1rem 0.4rem', borderRadius: '0.3rem' }}>{formatText(course.classLevel)}</span>}
+                      {course.semester && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#d97706', background: 'rgba(245,158,11,0.08)', padding: '0.1rem 0.4rem', borderRadius: '0.3rem' }}>{formatText(course.semester)}</span>}
+                    </div>
+                  </div>
+                  <ArrowRight size={16} color="#94a3b8" style={{ flexShrink: 0, alignSelf: 'center' }} />
                 </Link>
               ))}
             </div>
@@ -151,10 +181,31 @@ export default async function StudentPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           <div className="glass-card" style={{ padding: '2rem', background: 'white', border: '1px solid rgba(0,0,0,0.05)' }}>
             <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '1.5rem' }}>Upcoming Deadlines</h3>
-            <div style={{ textAlign: 'center', padding: '2rem 0' }}>
-              <Calendar size={32} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
-              <p style={{ color: '#64748b', fontWeight: 500, fontSize: '0.875rem' }}>All caught up! No pending assignments.</p>
-            </div>
+            {upcomingDeadlines.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+                <Calendar size={32} style={{ color: '#cbd5e1', marginBottom: '1rem' }} />
+                <p style={{ color: '#64748b', fontWeight: 500, fontSize: '0.875rem' }}>All caught up! No pending assignments.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                {upcomingDeadlines.map((lesson: any) => (
+                  <Link
+                    key={String(lesson._id)}
+                    href={`/student/courses/${lesson.courseId?._id || lesson.courseId}`}
+                    style={{ display: 'block', padding: '0.9rem 1rem', borderRadius: '0.85rem', background: '#f8fafc', border: '1px solid #e2e8f0', textDecoration: 'none' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.35rem' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 800, color: lesson.type === "QUIZ" ? '#d97706' : '#dc2626', background: lesson.type === "QUIZ" ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.1)', padding: '0.15rem 0.5rem', borderRadius: '0.35rem' }}>{lesson.type}</span>
+                      <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 700 }}>{new Date(lesson.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </div>
+                    <p style={{ margin: 0, fontWeight: 800, color: '#1e293b', fontSize: '0.9rem', lineHeight: 1.35 }}>{lesson.title}</p>
+                    <p style={{ margin: '0.25rem 0 0', color: '#64748b', fontSize: '0.78rem', lineHeight: 1.35 }}>
+                      {lesson.courseId?.title || "Course"} • Due {new Date(lesson.endDate).toLocaleString()}
+                    </p>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="glass-card" style={{ padding: '2rem', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', color: 'white', border: 'none' }}>

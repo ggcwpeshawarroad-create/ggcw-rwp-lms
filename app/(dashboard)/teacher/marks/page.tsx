@@ -2,14 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { BookOpen, ClipboardList, Download, FileCheck2, Loader2, Search } from "lucide-react"
+import { Toast, ToastType } from "@/components/ui/Toast"
 import { formatText } from "@/lib/utils"
 
 function calcPercentage(score: unknown, total: unknown) {
   const nScore = Number(score)
   const nTotal = Number(total)
   return Number.isFinite(nScore) && Number.isFinite(nTotal) && nTotal > 0
-    ? Math.round((nScore / nTotal) * 100) + "%"
-    : "-"
+    ? Math.round((nScore / nTotal) * 100)
+    : null
 }
 
 function numericGrade(grade: unknown) {
@@ -18,11 +19,26 @@ function numericGrade(grade: unknown) {
 }
 
 function displayMarks(mark: any) {
-  if (mark.lessonId?.type === "QUIZ") {
-    return String(mark.score || 0) + "/" + String(mark.totalQuestions || 0) + " (" + calcPercentage(mark.score, mark.totalQuestions) + ")"
-  }
+  return getObtainedMarks(mark)
+}
+
+function getObtainedMarks(mark: any) {
+  if (mark.lessonId?.type === "QUIZ") return Number(mark.score || 0)
   const gradeValue = numericGrade(mark.grade)
-  return gradeValue !== null ? String(gradeValue) : "Submitted"
+  return gradeValue !== null ? gradeValue : null
+}
+
+function getTotalMarks(mark: any) {
+  if (mark.lessonId?.type === "QUIZ") return Number(mark.totalQuestions || 0)
+  return numericGrade(mark.grade) !== null ? 100 : null
+}
+
+function getResult(mark: any) {
+  const obtained = getObtainedMarks(mark)
+  const total = getTotalMarks(mark)
+  const percentage = calcPercentage(obtained, total)
+  if (percentage === null) return "Pending"
+  return percentage >= 50 ? "Pass" : "Fail"
 }
 
 export default function TeacherMarksPage() {
@@ -33,6 +49,8 @@ export default function TeacherMarksPage() {
   const [type, setType] = useState("")
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
 
   useEffect(() => {
     fetchCourses()
@@ -89,32 +107,10 @@ export default function TeacherMarksPage() {
 
   const quizMarks = filteredMarks.filter(mark => mark.lessonId?.type === "QUIZ")
   const assignmentMarks = filteredMarks.filter(mark => mark.lessonId?.type === "ASSIGNMENT")
-  const assignmentScore = assignmentMarks.reduce((sum, mark) => sum + (numericGrade(mark.grade) ?? 0), 0)
-  const assignmentTotal = assignmentMarks.reduce((sum, mark) => sum + (numericGrade(mark.grade) !== null ? 100 : 0), 0)
-  const quizScore = quizMarks.reduce((sum, mark) => sum + Number(mark.score || 0), 0)
-  const quizTotal = quizMarks.reduce((sum, mark) => sum + Number(mark.totalQuestions || 0), 0)
-  const totalScore = quizScore + assignmentScore
-  const totalPossible = quizTotal + assignmentTotal
-
-  const getStudentSummary = (studentId: string) => {
-    const studentMarks = filteredMarks.filter((mark: any) => mark.userId?._id === studentId)
-    const studentQuizMarks = studentMarks.filter((mark: any) => mark.lessonId?.type === "QUIZ")
-    const studentAssignments = studentMarks.filter((mark: any) => mark.lessonId?.type === "ASSIGNMENT")
-    const assignmentMarks = studentAssignments.reduce((sum: number, mark: any) => sum + (numericGrade(mark.grade) ?? 0), 0)
-    const assignmentPossible = studentAssignments.reduce((sum: number, mark: any) => sum + (numericGrade(mark.grade) !== null ? 100 : 0), 0)
-    const totalMarks = studentQuizMarks.reduce((sum: number, mark: any) => sum + Number(mark.score || 0), 0) + assignmentMarks
-    const possibleMarks = studentQuizMarks.reduce((sum: number, mark: any) => sum + Number(mark.totalQuestions || 0), 0) + assignmentPossible
-    const gradedAssignments = studentAssignments.filter((mark: any) => mark.grade).length
-    return {
-      totalRecords: studentMarks.length,
-      totalQuizzes: studentQuizMarks.length,
-      totalAssignments: studentAssignments.length,
-      totalMarks,
-      possibleMarks,
-      average: possibleMarks ? Math.round((totalMarks / possibleMarks) * 100) + "%" : "-",
-      gradedAssignments,
-    }
-  }
+  const obtainedMarks = filteredMarks.reduce((sum, mark) => sum + (getObtainedMarks(mark) ?? 0), 0)
+  const totalMarks = filteredMarks.reduce((sum, mark) => sum + (getTotalMarks(mark) ?? 0), 0)
+  const passCount = filteredMarks.filter(mark => getResult(mark) === "Pass").length
+  const failCount = filteredMarks.filter(mark => getResult(mark) === "Fail").length
 
   const downloadUrl = () => {
     const params = new URLSearchParams()
@@ -122,6 +118,38 @@ export default function TeacherMarksPage() {
     if (studentId) params.set("userId", studentId)
     if (type) params.set("type", type)
     return `/api/marks/export?${params.toString()}`
+  }
+
+  const downloadExcel = async () => {
+    setDownloading(true)
+    try {
+      const res = await fetch(downloadUrl(), { cache: "no-store" })
+      if (!res.ok) {
+        let message = "Failed to download marksheet"
+        try {
+          const data = await res.json()
+          if (data?.error) message = data.error
+        } catch {
+          // Keep the default message when the server returns a non-JSON error page.
+        }
+        throw new Error(message)
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `marksheet-${new Date().toISOString().slice(0, 10)}.xls`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+      setToast({ message: "Marksheet downloaded", type: "success" })
+    } catch (error) {
+      setToast({ message: error instanceof Error ? error.message : "Failed to download marksheet", type: "error" })
+    } finally {
+      setDownloading(false)
+    }
   }
 
   return (
@@ -134,9 +162,10 @@ export default function TeacherMarksPage() {
             <p style={{ fontSize: "0.875rem", opacity: 0.6 }}>Quiz and assignment marks for your courses</p>
           </div>
         </div>
-        <a href={downloadUrl()} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}>
-          <Download size={18} /> Download Excel
-        </a>
+        <button onClick={downloadExcel} disabled={downloading} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {downloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+          {downloading ? "Downloading..." : "Download Excel"}
+        </button>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
@@ -173,9 +202,9 @@ export default function TeacherMarksPage() {
           ["Total Records", filteredMarks.length],
           ["Quizzes", quizMarks.length],
           ["Assignments", assignmentMarks.length],
-          ["Total Marks", totalScore],
-          ["Possible", totalPossible],
-          ["Average", totalPossible ? Math.round((totalScore / totalPossible) * 100) + "%" : "0%"],
+          ["Total Marks", totalMarks],
+          ["Obtained Marks", obtainedMarks],
+          ["Pass / Fail", `${passCount} / ${failCount}`],
         ].map(([label, value]) => (
           <div key={label} style={{ padding: "0.85rem", borderRadius: "0.75rem", background: "white", border: "1px solid var(--glass-border)" }}>
             <div style={{ fontSize: "0.7rem", fontWeight: 800, color: "#64748b", textTransform: "uppercase" }}>{label}</div>
@@ -197,49 +226,34 @@ export default function TeacherMarksPage() {
                 <th style={{ padding: "0.75rem 1rem" }}>Course</th>
                 <th style={{ padding: "0.75rem 1rem" }}>Assessment</th>
                 <th style={{ padding: "0.75rem 1rem" }}>Type</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Marks</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Grade</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Feedback</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Total</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Quizzes</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Assignments</th>
                 <th style={{ padding: "0.75rem 1rem" }}>Total Marks</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Possible</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Average</th>
-                <th style={{ padding: "0.75rem 1rem" }}>Graded Assignments</th>
+                <th style={{ padding: "0.75rem 1rem" }}>Obtained Marks</th>
+                <th style={{ padding: "0.75rem 1rem" }}>Result</th>
                 <th style={{ padding: "0.75rem 1rem" }}>Submitted</th>
               </tr>
             </thead>
             <tbody>
-              {filteredMarks.map((mark: any) => {
-                const studentSummary = getStudentSummary(mark.userId?._id)
-                return (
-                  <tr key={mark._id} style={{ background: "white", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-                    <td style={{ padding: "1rem" }}>
-                      <div style={{ fontWeight: 700, color: "#1e293b" }}>{formatText(mark.userId?.name || "Student")}</div>
-                      <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{mark.userId?.registrationNumber || mark.userId?.email || "-"}</div>
-                    </td>
-                    <td style={{ padding: "1rem", fontWeight: 700 }}>{formatText(mark.courseId?.title || "Course")}</td>
-                    <td style={{ padding: "1rem" }}>{formatText(mark.lessonId?.title || "Assessment")}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800 }}>{mark.lessonId?.type}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800 }}>{displayMarks(mark)}</td>
-                    <td style={{ padding: "1rem" }}>{mark.grade || "-"}</td>
-                    <td style={{ padding: "1rem", color: "#64748b", minWidth: "180px" }}>{mark.feedback || "-"}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800 }}>{studentSummary.totalRecords}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800 }}>{studentSummary.totalQuizzes}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800 }}>{studentSummary.totalAssignments}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800, color: "#059669" }}>{studentSummary.totalMarks}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800 }}>{studentSummary.possibleMarks}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800 }}>{studentSummary.average}</td>
-                    <td style={{ padding: "1rem", fontWeight: 800 }}>{studentSummary.gradedAssignments}</td>
-                    <td style={{ padding: "1rem", color: "#64748b" }}>{mark.submittedAt ? new Date(mark.submittedAt).toLocaleString() : "-"}</td>
-                  </tr>
-                )
-              })}
+              {filteredMarks.map((mark: any) => (
+                <tr key={mark._id} style={{ background: "white", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                  <td style={{ padding: "1rem" }}>
+                    <div style={{ fontWeight: 700, color: "#1e293b" }}>{formatText(mark.userId?.name || "Student")}</div>
+                    <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{mark.userId?.registrationNumber || mark.userId?.email || "-"}</div>
+                  </td>
+                  <td style={{ padding: "1rem", fontWeight: 700 }}>{formatText(mark.courseId?.title || "Course")}</td>
+                  <td style={{ padding: "1rem" }}>{formatText(mark.lessonId?.title || "Assessment")}</td>
+                  <td style={{ padding: "1rem", fontWeight: 800 }}>{mark.lessonId?.type}</td>
+                  <td style={{ padding: "1rem", fontWeight: 800 }}>{getTotalMarks(mark) ?? "-"}</td>
+                  <td style={{ padding: "1rem", fontWeight: 800, color: "#059669" }}>{displayMarks(mark) ?? "-"}</td>
+                  <td style={{ padding: "1rem", fontWeight: 800, color: getResult(mark) === "Fail" ? "#dc2626" : getResult(mark) === "Pass" ? "#059669" : "#64748b" }}>{getResult(mark)}</td>
+                  <td style={{ padding: "1rem", color: "#64748b" }}>{mark.submittedAt ? new Date(mark.submittedAt).toLocaleString() : "-"}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   )
 }

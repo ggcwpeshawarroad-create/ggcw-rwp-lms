@@ -50,6 +50,27 @@ function isLessonLocked(lesson: any) {
   return !!lesson?.startDate && new Date() < new Date(lesson.startDate)
 }
 
+function renderTextWithLinks(text: string) {
+  const parts = text.split(/(https?:\/\/[^\s]+|www\.[^\s]+)/g)
+  return parts.map((part, index) => {
+    if (!/^(https?:\/\/|www\.)/.test(part)) return part
+
+    const trailingMatch = part.match(/[),.;!?]+$/)
+    const trailing = trailingMatch?.[0] || ""
+    const urlText = trailing ? part.slice(0, -trailing.length) : part
+    const href = urlText.startsWith("www.") ? `https://${urlText}` : urlText
+
+    return (
+      <span key={`${urlText}-${index}`}>
+        <a href={href} target="_blank" rel="noopener noreferrer" style={{ color: "#2563eb", fontWeight: 700, textDecoration: "underline" }}>
+          {urlText}
+        </a>
+        {trailing}
+      </span>
+    )
+  })
+}
+
 export default function CoursePlayerPage() {
   const { id } = useParams()
   const router = useRouter()
@@ -555,7 +576,7 @@ export default function CoursePlayerPage() {
                   <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '2rem' }}>{selectedLesson.title}</h2>
                   
                   <div style={{ lineHeight: '1.8', fontSize: '1.1rem', opacity: 0.8, whiteSpace: 'pre-wrap' }}>
-                    {selectedLesson.content || "No detailed content provided for this lesson."}
+                    {renderTextWithLinks(selectedLesson.content || "No detailed content provided for this lesson.")}
                   </div>
 
                   {selectedLesson.attachments?.length > 0 && (

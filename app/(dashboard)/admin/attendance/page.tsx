@@ -1,12 +1,23 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { CalendarDays, ClipboardCheck, Download, Loader2, Search } from "lucide-react"
+import { ArrowLeft, BookOpen, CalendarDays, ClipboardCheck, Download, Loader2, Search } from "lucide-react"
+import { formatText } from "@/lib/utils"
+
+function classKey(course: any) {
+  return [course.classLevel || "No Class", course.program || "No Program", course.semester || "No Semester"].join("||")
+}
+
+function classLabel(course: any) {
+  return [course.classLevel, course.program, course.semester].filter(Boolean).map(formatText).join(" | ") || "Unassigned Class"
+}
 
 export default function AdminAttendancePage() {
   const [courses, setCourses] = useState<any[]>([])
   const [attendance, setAttendance] = useState<any[]>([])
+  const [selectedClassKey, setSelectedClassKey] = useState("")
   const [courseId, setCourseId] = useState("")
+  const [dateMode, setDateMode] = useState<"all" | "date">("all")
   const [date, setDate] = useState("")
   const [search, setSearch] = useState("")
   const [loading, setLoading] = useState(true)
@@ -18,7 +29,7 @@ export default function AdminAttendancePage() {
 
   useEffect(() => {
     fetchAttendance()
-  }, [courseId, date])
+  }, [courseId, date, dateMode])
 
   const fetchCourses = async () => {
     try {
@@ -35,7 +46,7 @@ export default function AdminAttendancePage() {
     try {
       const params = new URLSearchParams()
       if (courseId) params.set("courseId", courseId)
-      if (date) params.set("date", date)
+      if (dateMode === "date" && date) params.set("date", date)
       const res = await fetch(`/api/attendance?${params.toString()}`)
       const data = await res.json()
       if (res.ok) setAttendance(data)
@@ -57,6 +68,19 @@ export default function AdminAttendancePage() {
       note: record.note,
     }))
   ), [attendance])
+
+  const classGroups = useMemo(() => {
+    const groups = new Map<string, { key: string; label: string; courses: any[] }>()
+    courses.forEach((course: any) => {
+      const key = classKey(course)
+      if (!groups.has(key)) groups.set(key, { key, label: classLabel(course), courses: [] })
+      groups.get(key)?.courses.push(course)
+    })
+    return Array.from(groups.values()).sort((a, b) => a.label.localeCompare(b.label))
+  }, [courses])
+
+  const selectedClass = classGroups.find(group => group.key === selectedClassKey)
+  const selectedCourse = courses.find((course: any) => course._id === courseId)
 
   const filteredRows = rows.filter((row: any) => {
     const q = search.toLowerCase()
@@ -94,8 +118,19 @@ export default function AdminAttendancePage() {
   const downloadUrl = () => {
     const params = new URLSearchParams()
     if (courseId) params.set("courseId", courseId)
-    if (date) params.set("date", date)
+    if (dateMode === "date" && date) params.set("date", date)
     return `/api/attendance/export?${params.toString()}`
+  }
+
+  const selectClass = (key: string) => {
+    setSelectedClassKey(key)
+    setCourseId("")
+    setSearch("")
+  }
+
+  const selectCourse = (id: string) => {
+    setCourseId(id)
+    setSearch("")
   }
 
   const statusStyle = (status: string) => {
@@ -113,31 +148,113 @@ export default function AdminAttendancePage() {
           <div style={{ background: "var(--primary)", padding: "0.75rem", borderRadius: "1rem", color: "white" }}><ClipboardCheck size={24} /></div>
           <div>
             <h2 style={{ fontSize: "1.5rem", fontWeight: 700 }}>Attendance List</h2>
-            <p style={{ fontSize: "0.875rem", opacity: 0.6 }}>View all course attendance and download Excel sheets</p>
+            <p style={{ fontSize: "0.875rem", opacity: 0.6 }}>Choose a class, then a subject, then view attendance</p>
           </div>
         </div>
-        <a href={downloadUrl()} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}>
-          <Download size={18} /> Download Excel
-        </a>
+        {courseId && (
+          <a href={downloadUrl()} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: "0.5rem", textDecoration: "none" }}>
+            <Download size={18} /> Download Excel
+          </a>
+        )}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem", marginBottom: "1.5rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem", color: "#64748b", fontSize: "0.875rem", fontWeight: 700 }}>
+        <button type="button" onClick={() => { setSelectedClassKey(""); setCourseId(""); setSearch("") }} style={{ border: "none", background: "none", color: selectedClassKey ? "var(--primary)" : "#1e293b", cursor: selectedClassKey ? "pointer" : "default", fontWeight: 800 }}>Classes</button>
+        {selectedClass && (
+          <>
+            <span>/</span>
+            <button type="button" onClick={() => { setCourseId(""); setSearch("") }} style={{ border: "none", background: "none", color: courseId ? "var(--primary)" : "#1e293b", cursor: courseId ? "pointer" : "default", fontWeight: 800 }}>{selectedClass.label}</button>
+          </>
+        )}
+        {selectedCourse && (
+          <>
+            <span>/</span>
+            <span style={{ color: "#1e293b" }}>{formatText(selectedCourse.title)}</span>
+          </>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: courseId ? "repeat(auto-fit, minmax(220px, 1fr))" : "minmax(220px, 360px)", gap: "1rem", marginBottom: "1.5rem" }}>
         <label style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontWeight: 700, color: "#334155" }}>
-          <span style={{ fontSize: "0.875rem" }}>Course</span>
-          <select value={courseId} onChange={(e) => setCourseId(e.target.value)} style={{ padding: "0.75rem", borderRadius: "0.75rem", border: "1px solid var(--glass-border)", background: "white", outline: "none" }}>
-            <option value="">All courses</option>
-            {courses.map(course => <option key={course._id} value={course._id}>{course.title}</option>)}
-          </select>
+          <span style={{ fontSize: "0.875rem" }}>Filter</span>
+          <div style={{ display: "flex", gap: "0.5rem", padding: "0.25rem", border: "1px solid var(--glass-border)", borderRadius: "0.75rem", background: "white" }}>
+            {[
+              { key: "all" as const, label: "All Attendance" },
+              { key: "date" as const, label: "Date Wise" },
+            ].map(option => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => setDateMode(option.key)}
+                style={{
+                  flex: 1,
+                  border: "none",
+                  borderRadius: "0.55rem",
+                  padding: "0.55rem 0.7rem",
+                  background: dateMode === option.key ? "var(--primary)" : "transparent",
+                  color: dateMode === option.key ? "white" : "#475569",
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap"
+                }}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </label>
         <label style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontWeight: 700, color: "#334155" }}>
           <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem" }}><CalendarDays size={16} /> Date</span>
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ padding: "0.75rem", borderRadius: "0.75rem", border: "1px solid var(--glass-border)", background: "white", outline: "none" }} />
+          <input
+            type="date"
+            value={date}
+            disabled={dateMode === "all"}
+            onChange={(e) => setDate(e.target.value)}
+            style={{ padding: "0.75rem", borderRadius: "0.75rem", border: "1px solid var(--glass-border)", background: dateMode === "all" ? "#f8fafc" : "white", outline: "none", opacity: dateMode === "all" ? 0.65 : 1 }}
+          />
         </label>
-        <label style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontWeight: 700, color: "#334155" }}>
-          <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem" }}><Search size={16} /> Search</span>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Student, course, teacher, status..." style={{ padding: "0.75rem", borderRadius: "0.75rem", border: "1px solid var(--glass-border)", background: "white", outline: "none" }} />
-        </label>
+        {courseId && (
+          <label style={{ display: "flex", flexDirection: "column", gap: "0.5rem", fontWeight: 700, color: "#334155" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem" }}><Search size={16} /> Search</span>
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Student, teacher, status..." style={{ padding: "0.75rem", borderRadius: "0.75rem", border: "1px solid var(--glass-border)", background: "white", outline: "none" }} />
+          </label>
+        )}
       </div>
+
+      {!selectedClassKey ? (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1rem" }}>
+          {classGroups.map(group => (
+            <button key={group.key} type="button" onClick={() => selectClass(group.key)} style={{ padding: "1.25rem", textAlign: "left", borderRadius: "1rem", background: "white", border: "1px solid var(--glass-border)", cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+              <div style={{ width: "42px", height: "42px", borderRadius: "0.75rem", background: "rgba(1,65,28,0.08)", color: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1rem" }}>
+                <ClipboardCheck size={20} />
+              </div>
+              <div style={{ fontSize: "1rem", fontWeight: 800, color: "#1e293b", marginBottom: "0.35rem" }}>{group.label}</div>
+              <div style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 700 }}>{group.courses.length} subject{group.courses.length !== 1 ? "s" : ""}</div>
+            </button>
+          ))}
+        </div>
+      ) : !courseId ? (
+        <div>
+          <button type="button" onClick={() => setSelectedClassKey("")} style={{ marginBottom: "1rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", border: "none", background: "#f1f5f9", color: "#334155", padding: "0.55rem 0.8rem", borderRadius: "0.65rem", cursor: "pointer", fontWeight: 800 }}>
+            <ArrowLeft size={16} /> Back to classes
+          </button>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
+            {selectedClass?.courses.map((course: any) => (
+              <button key={course._id} type="button" onClick={() => selectCourse(course._id)} style={{ padding: "1.25rem", textAlign: "left", borderRadius: "1rem", background: "white", border: "1px solid var(--glass-border)", cursor: "pointer", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+                <div style={{ width: "42px", height: "42px", borderRadius: "0.75rem", background: "rgba(79,70,229,0.1)", color: "#4f46e5", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "1rem" }}>
+                  <BookOpen size={20} />
+                </div>
+                <div style={{ fontSize: "1rem", fontWeight: 800, color: "#1e293b", marginBottom: "0.35rem" }}>{formatText(course.title)}</div>
+                <div style={{ fontSize: "0.8rem", color: "#64748b", fontWeight: 700 }}>{classLabel(course)}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+      <button type="button" onClick={() => { setCourseId(""); setSearch("") }} style={{ marginBottom: "1rem", display: "inline-flex", alignItems: "center", gap: "0.4rem", border: "none", background: "#f1f5f9", color: "#334155", padding: "0.55rem 0.8rem", borderRadius: "0.65rem", cursor: "pointer", fontWeight: 800 }}>
+        <ArrowLeft size={16} /> Back to subjects
+      </button>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "0.75rem", marginBottom: "1.5rem" }}>
         {[
@@ -217,6 +334,8 @@ export default function AdminAttendancePage() {
             </tbody>
           </table>
         </div>
+      )}
+        </>
       )}
     </div>
   )
