@@ -151,9 +151,13 @@ export async function GET(req: Request) {
 
     const rows = Array.from(studentCourseGroups.values()).map((group: any) => {
       const lessonMarks: any = {}
-      let totalObtained = 0
-      let totalMax = 0
-      let hasScoredSubmissions = false
+      let quizObtained = 0
+      let quizMax = 0
+      let hasQuizSubmissions = false
+
+      let assignmentObtained = 0
+      let assignmentMax = 0
+      let hasAssignmentSubmissions = false
 
       const subMap = new Map()
       group.submissions.forEach((sub: any) => {
@@ -181,9 +185,15 @@ export async function GET(req: Request) {
           lessonMarks[`${lesson._id}-total`] = totalVal !== null ? totalVal : ""
 
           if (obtainedVal !== null && totalVal !== null) {
-            totalObtained += obtainedVal
-            totalMax += totalVal
-            hasScoredSubmissions = true
+            if (lesson.type === "QUIZ") {
+              quizObtained += obtainedVal
+              quizMax += totalVal
+              hasQuizSubmissions = true
+            } else if (lesson.type === "ASSIGNMENT") {
+              assignmentObtained += obtainedVal
+              assignmentMax += totalVal
+              hasAssignmentSubmissions = true
+            }
           }
         } else {
           lessonMarks[`${lesson._id}-obtained`] = ""
@@ -191,8 +201,8 @@ export async function GET(req: Request) {
         }
       })
 
-      const pct = hasScoredSubmissions && totalMax > 0 ? (totalObtained / totalMax) * 100 : null
-      const res = pct !== null ? (pct >= 50 ? "Pass" : "Fail") : "Pending"
+      const quizPct = hasQuizSubmissions && quizMax > 0 ? (quizObtained / quizMax) * 100 : null
+      const assignmentPct = hasAssignmentSubmissions && assignmentMax > 0 ? (assignmentObtained / assignmentMax) * 100 : null
 
       return {
         student: group.student,
@@ -203,10 +213,8 @@ export async function GET(req: Request) {
         semester: group.semester,
         course: group.course,
         lessonMarks,
-        totalObtained: hasScoredSubmissions ? totalObtained : "",
-        totalMax: hasScoredSubmissions ? totalMax : "",
-        percentage: pct !== null ? pct.toFixed(1) + "%" : "",
-        result: res
+        quizPercentage: quizPct !== null ? quizPct.toFixed(1) + "%" : "N/A",
+        assignmentPercentage: assignmentPct !== null ? assignmentPct.toFixed(1) + "%" : "N/A"
       }
     })
 
@@ -225,7 +233,7 @@ export async function GET(req: Request) {
       headers.push(`${lesson.title} (Total)`)
     })
 
-    headers.push("Total Obtained", "Total Max Marks", "Percentage", "Result")
+    headers.push("Quiz Percentage", "Assignment Percentage")
 
     const detailRows = rows.map((row: any) => {
       let cells = "<tr>"
@@ -242,24 +250,16 @@ export async function GET(req: Request) {
         cells += "<td>" + escapeCell(row.lessonMarks[`${lesson._id}-total`]) + "</td>"
       })
 
-      cells += "<td>" + escapeCell(row.totalObtained) + "</td>"
-      cells += "<td>" + escapeCell(row.totalMax) + "</td>"
-      cells += "<td>" + escapeCell(row.percentage) + "</td>"
-      cells += "<td>" + escapeCell(row.result) + "</td>"
+      cells += "<td>" + escapeCell(row.quizPercentage) + "</td>"
+      cells += "<td>" + escapeCell(row.assignmentPercentage) + "</td>"
       cells += "</tr>"
       return cells
     }).join("")
 
     const totalStudents = rows.length
-    const totalPassed = rows.filter((r: any) => r.result === "Pass").length
-    const totalFailed = rows.filter((r: any) => r.result === "Fail").length
-    const totalPending = rows.filter((r: any) => r.result === "Pending").length
 
     const summaryRows = [
-      ["Total Students", totalStudents],
-      ["Passed", totalPassed],
-      ["Failed", totalFailed],
-      ["Pending", totalPending]
+      ["Total Students", totalStudents]
     ]
 
     const totalCols = headers.length
