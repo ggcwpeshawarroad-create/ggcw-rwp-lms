@@ -202,8 +202,6 @@ export default function TeacherMarksPage() {
           ["Total Records", filteredMarks.length],
           ["Quizzes", quizMarks.length],
           ["Assignments", assignmentMarks.length],
-          ["Total Marks", totalMarks],
-          ["Obtained Marks", obtainedMarks],
           ["Pass / Fail", `${passCount} / ${failCount}`],
         ].map(([label, value]) => (
           <div key={label} style={{ padding: "0.85rem", borderRadius: "0.75rem", background: "white", border: "1px solid var(--glass-border)" }}>

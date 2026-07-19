@@ -81,53 +81,191 @@ export async function GET(req: Request) {
       .sort({ submittedAt: -1 })
       .lean()
 
-    const rows = submissions
-      .filter((submission: any) => {
-        const lessonType = submission.lessonId?.type
-        return type ? lessonType === type : ["QUIZ", "ASSIGNMENT"].includes(lessonType)
-      })
-      .map((submission: any) => ({
-        date: submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : "",
-        studentId: submission.userId?._id?.toString?.() || submission.userId?._id,
-        student: submission.userId?.name,
-        registrationNumber: submission.userId?.registrationNumber,
-        email: submission.userId?.email,
-        classLevel: submission.userId?.classLevel || submission.courseId?.classLevel,
-        program: submission.userId?.program || submission.courseId?.program,
-        semester: submission.userId?.semester || submission.courseId?.semester,
-        course: submission.courseId?.title,
-        lesson: submission.lessonId?.title,
-        type: submission.lessonId?.type,
-        obtainedMarks: submission.lessonId?.type === "ASSIGNMENT" ? (numericGrade(submission.grade) ?? "") : (submission.score ?? ""),
-        totalMarks: submission.lessonId?.type === "ASSIGNMENT" ? (numericGrade(submission.grade) !== null ? 100 : "") : (submission.totalQuestions ?? ""),
-      }))
-      .map((row: any) => ({
-        ...row,
-        result: result(row.obtainedMarks, row.totalMarks),
-      }))
+    const filteredSubmissions = submissions.filter((submission: any) => {
+      const lessonType = submission.lessonId?.type
+      return type ? lessonType === type : ["QUIZ", "ASSIGNMENT"].includes(lessonType)
+    })
 
-    const quizRows = rows.filter(row => row.type === "QUIZ")
-    const assignmentRows = rows.filter(row => row.type === "ASSIGNMENT")
-    const scoredRows = rows.filter(row => row.obtainedMarks !== "" && row.totalMarks !== "")
-    const scoreTotal = scoredRows.reduce((sum, row) => sum + Number(row.obtainedMarks || 0), 0)
-    const maxTotal = scoredRows.reduce((sum, row) => sum + Number(row.totalMarks || 0), 0)
-    const passCount = rows.filter(row => row.result === "Pass").length
-    const failCount = rows.filter(row => row.result === "Fail").length
-    const summaryRows = [
-      ["Total Records", rows.length],
-      ["Total Quizzes", quizRows.length],
-      ["Total Assignments", assignmentRows.length],
-      ["Total Marks", maxTotal],
-      ["Obtained Marks", scoreTotal],
-      ["Pass / Fail", `${passCount} / ${failCount}`],
+    const courseIds = [...new Set(filteredSubmissions.map((sub: any) => sub.courseId?._id?.toString()).filter(Boolean))]
+
+    const lessonQuery: any = {
+      courseId: { $in: courseIds },
+      type: { $in: ["QUIZ", "ASSIGNMENT"] }
+    }
+    if (type) {
+      lessonQuery.type = type
+    }
+    const lessonsFromDb = await Lesson.find(lessonQuery)
+      .sort({ courseId: 1, order: 1, createdAt: 1 })
+      .lean()
+
+    const uniqueLessonsMap = new Map()
+    lessonsFromDb.forEach((lesson: any) => {
+      uniqueLessonsMap.set(lesson._id.toString(), {
+        _id: lesson._id.toString(),
+        title: lesson.title,
+        type: lesson.type,
+        courseId: lesson.courseId.toString()
+      })
+    })
+
+    filteredSubmissions.forEach((sub: any) => {
+      if (sub.lessonId?._id) {
+        const id = sub.lessonId._id.toString()
+        if (!uniqueLessonsMap.has(id)) {
+          uniqueLessonsMap.set(id, {
+            _id: id,
+            title: sub.lessonId.title,
+            type: sub.lessonId.type,
+            courseId: sub.courseId?._id?.toString()
+          })
+        }
+      }
+    })
+
+    const lessonsList = Array.from(uniqueLessonsMap.values())
+
+    const studentCourseGroups = new Map()
+    filteredSubmissions.forEach((sub: any) => {
+      const studentId = sub.userId?._id?.toString() || sub.userId?.toString()
+      const cId = sub.courseId?._id?.toString() || sub.courseId?.toString()
+      if (!studentId || !cId) return
+
+      const key = `${studentId}-${cId}`
+      if (!studentCourseGroups.has(key)) {
+        studentCourseGroups.set(key, {
+          studentId,
+          courseId: cId,
+          student: sub.userId?.name || "",
+          registrationNumber: sub.userId?.registrationNumber || "",
+          email: sub.userId?.email || "",
+          classLevel: sub.userId?.classLevel || sub.courseId?.classLevel || "",
+          program: sub.userId?.program || sub.courseId?.program || "",
+          semester: sub.userId?.semester || sub.courseId?.semester || "",
+          course: sub.courseId?.title || "",
+          submissions: []
+        })
+      }
+      studentCourseGroups.get(key).submissions.push(sub)
+    })
+
+    const rows = Array.from(studentCourseGroups.values()).map((group: any) => {
+      const lessonMarks: any = {}
+      let totalObtained = 0
+      let totalMax = 0
+      let hasScoredSubmissions = false
+
+      const subMap = new Map()
+      group.submissions.forEach((sub: any) => {
+        if (sub.lessonId?._id) {
+          subMap.set(sub.lessonId._id.toString(), sub)
+        }
+      })
+
+      lessonsList.forEach((lesson: any) => {
+        if (lesson.courseId !== group.courseId) {
+          lessonMarks[`${lesson._id}-obtained`] = ""
+          lessonMarks[`${lesson._id}-total`] = ""
+          return
+        }
+
+        const sub = subMap.get(lesson._id)
+        if (sub) {
+          const obtained = lesson.type === "ASSIGNMENT" ? numericGrade(sub.grade) : sub.score
+          const total = lesson.type === "ASSIGNMENT" ? (numericGrade(sub.grade) !== null ? 100 : null) : sub.totalQuestions
+
+          const obtainedVal = obtained !== undefined && obtained !== null && obtained !== "" ? Number(obtained) : null
+          const totalVal = total !== undefined && total !== null && total !== "" ? Number(total) : null
+
+          lessonMarks[`${lesson._id}-obtained`] = obtainedVal !== null ? obtainedVal : ""
+          lessonMarks[`${lesson._id}-total`] = totalVal !== null ? totalVal : ""
+
+          if (obtainedVal !== null && totalVal !== null) {
+            totalObtained += obtainedVal
+            totalMax += totalVal
+            hasScoredSubmissions = true
+          }
+        } else {
+          lessonMarks[`${lesson._id}-obtained`] = ""
+          lessonMarks[`${lesson._id}-total`] = ""
+        }
+      })
+
+      const pct = hasScoredSubmissions && totalMax > 0 ? (totalObtained / totalMax) * 100 : null
+      const res = pct !== null ? (pct >= 50 ? "Pass" : "Fail") : "Pending"
+
+      return {
+        student: group.student,
+        registrationNumber: group.registrationNumber,
+        email: group.email,
+        classLevel: group.classLevel,
+        program: group.program,
+        semester: group.semester,
+        course: group.course,
+        lessonMarks,
+        totalObtained: hasScoredSubmissions ? totalObtained : "",
+        totalMax: hasScoredSubmissions ? totalMax : "",
+        percentage: pct !== null ? pct.toFixed(1) + "%" : "",
+        result: res
+      }
+    })
+
+    const headers = [
+      "Student",
+      "Registration #",
+      "Email",
+      "Class",
+      "Program",
+      "Semester",
+      "Course"
     ]
 
-    const headers = ["Submitted At", "Student", "Registration #", "Email", "Class", "Program", "Semester", "Course", "Assessment", "Type", "Total Marks", "Obtained Marks", "Result"]
-    const detailRows = rows.map(row => (
-      "<tr><td>" + escapeCell(row.date) + "</td><td>" + escapeCell(row.student) + "</td><td>" + escapeCell(row.registrationNumber) + "</td><td>" + escapeCell(row.email) + "</td><td>" + escapeCell(row.classLevel) + "</td><td>" + escapeCell(row.program) + "</td><td>" + escapeCell(row.semester) + "</td><td>" + escapeCell(row.course) + "</td><td>" + escapeCell(row.lesson) + "</td><td>" + escapeCell(row.type) + "</td><td>" + escapeCell(row.totalMarks) + "</td><td>" + escapeCell(row.obtainedMarks) + "</td><td>" + escapeCell(row.result) + "</td></tr>"
-    )).join("")
-    const summaryHtml = summaryRows.map(row => `<tr><td>${escapeCell(row[0])}</td><td>${escapeCell(row[1])}</td><td colspan="11"></td></tr>`).join("")
-    const html = `\uFEFF<!doctype html><html><head><meta charset="utf-8" /></head><body><table><thead><tr>${headers.map(header => `<th>${escapeCell(header)}</th>`).join("")}</tr></thead><tbody>${detailRows}<tr><td colspan="13"></td></tr><tr><th colspan="2">Summary</th><th colspan="11"></th></tr>${summaryHtml}</tbody></table></body></html>`
+    lessonsList.forEach((lesson: any) => {
+      headers.push(`${lesson.title} (Obtained)`)
+      headers.push(`${lesson.title} (Total)`)
+    })
+
+    headers.push("Total Obtained", "Total Max Marks", "Percentage", "Result")
+
+    const detailRows = rows.map((row: any) => {
+      let cells = "<tr>"
+      cells += "<td>" + escapeCell(row.student) + "</td>"
+      cells += "<td>" + escapeCell(row.registrationNumber) + "</td>"
+      cells += "<td>" + escapeCell(row.email) + "</td>"
+      cells += "<td>" + escapeCell(row.classLevel) + "</td>"
+      cells += "<td>" + escapeCell(row.program) + "</td>"
+      cells += "<td>" + escapeCell(row.semester) + "</td>"
+      cells += "<td>" + escapeCell(row.course) + "</td>"
+
+      lessonsList.forEach((lesson: any) => {
+        cells += "<td>" + escapeCell(row.lessonMarks[`${lesson._id}-obtained`]) + "</td>"
+        cells += "<td>" + escapeCell(row.lessonMarks[`${lesson._id}-total`]) + "</td>"
+      })
+
+      cells += "<td>" + escapeCell(row.totalObtained) + "</td>"
+      cells += "<td>" + escapeCell(row.totalMax) + "</td>"
+      cells += "<td>" + escapeCell(row.percentage) + "</td>"
+      cells += "<td>" + escapeCell(row.result) + "</td>"
+      cells += "</tr>"
+      return cells
+    }).join("")
+
+    const totalStudents = rows.length
+    const totalPassed = rows.filter((r: any) => r.result === "Pass").length
+    const totalFailed = rows.filter((r: any) => r.result === "Fail").length
+    const totalPending = rows.filter((r: any) => r.result === "Pending").length
+
+    const summaryRows = [
+      ["Total Students", totalStudents],
+      ["Passed", totalPassed],
+      ["Failed", totalFailed],
+      ["Pending", totalPending]
+    ]
+
+    const totalCols = headers.length
+    const summaryHtml = summaryRows.map(row => `<tr><td>${escapeCell(row[0])}</td><td>${escapeCell(row[1])}</td><td colspan="${totalCols - 2}"></td></tr>`).join("")
+
+    const html = `\uFEFF<!doctype html><html><head><meta charset="utf-8" /></head><body><table><thead><tr>${headers.map(header => `<th>${escapeCell(header)}</th>`).join("")}</tr></thead><tbody>${detailRows}<tr><td colspan="${totalCols}"></td></tr><tr><th colspan="2">Summary</th><th colspan="${totalCols - 2}"></th></tr>${summaryHtml}</tbody></table></body></html>`
 
     return new NextResponse(html, {
       headers: {
