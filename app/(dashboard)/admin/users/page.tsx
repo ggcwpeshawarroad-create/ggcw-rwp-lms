@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Users, Loader2, Search, ChevronLeft, ChevronRight, X, PlusCircle, BookOpen, Trash2, CheckCircle, Lock, Eye, EyeOff } from "lucide-react"
+import { Users, Loader2, Search, ChevronLeft, ChevronRight, X, PlusCircle, BookOpen, Trash2, CheckCircle, Lock, Eye, EyeOff, Edit2 } from "lucide-react"
 import Link from "next/link"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { SearchableSelect } from "@/components/ui/SearchableSelect"
@@ -30,10 +30,115 @@ export default function UsersPage() {
   const [showResetPassword, setShowResetPassword] = useState(false)
   const [newPassword, setNewPassword] = useState("")
 
+  const [academicConfig, setAcademicConfig] = useState<any[]>([])
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [updating, setUpdating] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    email: "",
+    registrationNumber: "",
+    role: "STUDENT",
+    classLevel: "",
+    program: "",
+    semester: "",
+  })
+  const [popoverPosition, setPopoverPosition] = useState<{ top: number; left: number } | null>(null)
+
   useEffect(() => {
     fetchUsers()
     fetchCourses()
   }, [page, search, activeRole])
+
+  useEffect(() => {
+    fetch("/api/academic-config")
+      .then(r => r.json())
+      .then(data => setAcademicConfig(data.classes || []))
+      .catch(err => console.error("Failed to fetch academic config:", err))
+  }, [])
+
+  const classOptions = academicConfig.map(c => c.name)
+
+  const getProgramOptions = (classLevel: string) => {
+    return academicConfig.find(c => c.name === classLevel)?.programs || []
+  }
+
+  const getSemesterOptions = (classLevel: string) => {
+    return academicConfig.find(c => c.name === classLevel)?.semesters || []
+  }
+
+  const hasPrograms = (classLevel: string) => getProgramOptions(classLevel).length > 0
+  const hasSemesters = (classLevel: string) => getSemesterOptions(classLevel).length > 0
+
+  const handleOpenEdit = (user: any, e: React.MouseEvent) => {
+    const rootDiv = e.currentTarget.closest('div[style*="position: relative"]') || e.currentTarget.closest('.glass-card')?.parentElement
+    
+    const scrollY = window.scrollY
+    const viewportHeight = window.innerHeight
+    const absoluteY = scrollY + (viewportHeight / 2)
+    
+    let top = absoluteY
+    if (rootDiv) {
+      const containerRect = rootDiv.getBoundingClientRect()
+      const containerAbsoluteTop = containerRect.top + window.scrollY
+      top = absoluteY - containerAbsoluteTop
+    }
+
+    setPopoverPosition({ top, left: 0 })
+
+    setSelectedUser(user)
+    setEditFormData({
+      name: user.name || "",
+      email: user.email || "",
+      registrationNumber: user.registrationNumber || "",
+      role: user.role || "STUDENT",
+      classLevel: user.classLevel || "",
+      program: user.program || "",
+      semester: user.semester || "",
+    })
+    setShowEditModal(true)
+  }
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setUpdating(true)
+    try {
+      const res = await fetch(`/api/admin/users/${selectedUser._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editFormData)
+      })
+
+      if (res.ok) {
+        setShowEditModal(false)
+        setToast({ message: "User updated successfully!", type: "success" })
+        fetchUsers()
+      } else {
+        const d = await res.json()
+        setToast({ message: d.error || "Update failed", type: "error" })
+      }
+    } catch (err) {
+      setToast({ message: "Something went wrong", type: "error" })
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete the user "${userName}"? This will permanently remove their account.`)) return
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" })
+      if (res.ok) {
+        setToast({ message: "User deleted successfully", type: "success" })
+        fetchUsers()
+      } else {
+        const data = await res.json()
+        setToast({ message: data.error || "Failed to delete user", type: "error" })
+      }
+    } catch (err) {
+      console.error("Deletion failed")
+      setToast({ message: "Something went wrong", type: "error" })
+    }
+  }
 
   const fetchUserEnrollments = async (userId: string) => {
     try {
@@ -297,7 +402,7 @@ export default function UsersPage() {
                         {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                       </td>
                       <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', alignItems: 'center', minWidth: '180px' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', minWidth: '280px' }}>
                           {user.role === "STUDENT" && (
                             <button 
                               onClick={() => handleOpenAssign(user)}
@@ -313,7 +418,7 @@ export default function UsersPage() {
                                 display: 'inline-flex', 
                                 alignItems: 'center', 
                                 gap: '0.4rem',
-                                minWidth: '85px',
+                                minWidth: '80px',
                                 justifyContent: 'center',
                                 transition: 'all 0.2s',
                                 cursor: 'pointer'
@@ -322,6 +427,29 @@ export default function UsersPage() {
                               <PlusCircle size={14} /> Course
                             </button>
                           )}
+                          <button 
+                            onClick={(e) => handleOpenEdit(user, e)}
+                            className="btn-action-primary"
+                            style={{ 
+                              padding: '0.5rem 0.8rem', 
+                              fontSize: '0.75rem', 
+                              background: 'rgba(16, 185, 129, 0.06)', 
+                              color: '#10b981', 
+                              fontWeight: 700, 
+                              border: '1px solid rgba(16, 185, 129, 0.12)', 
+                              borderRadius: '0.75rem', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '0.4rem',
+                              minWidth: '70px',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s',
+                              cursor: 'pointer'
+                            }}
+                            title="Edit User"
+                          >
+                            <Edit2 size={14} /> Edit
+                          </button>
                           <button 
                             onClick={() => { setSelectedUser(user); setShowResetModal(true); }}
                             className="btn-action-danger"
@@ -336,7 +464,7 @@ export default function UsersPage() {
                               display: 'inline-flex', 
                               alignItems: 'center', 
                               gap: '0.4rem',
-                              minWidth: '85px',
+                              minWidth: '80px',
                               justifyContent: 'center',
                               transition: 'all 0.2s',
                               cursor: 'pointer'
@@ -344,6 +472,29 @@ export default function UsersPage() {
                             title="Reset Password"
                           >
                             <Lock size={14} /> Reset
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteUser(user._id, user.name)}
+                            className="btn-action-danger"
+                            style={{ 
+                              padding: '0.5rem 0.8rem', 
+                              fontSize: '0.75rem', 
+                              background: 'rgba(239, 68, 68, 0.06)', 
+                              color: '#ef4444', 
+                              fontWeight: 700, 
+                              border: '1px solid rgba(239, 68, 68, 0.12)', 
+                              borderRadius: '0.75rem', 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '0.4rem',
+                              minWidth: '75px',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s',
+                              cursor: 'pointer'
+                            }}
+                            title="Delete User"
+                          >
+                            <Trash2 size={14} /> Delete
                           </button>
                         </div>
                       </td>
@@ -519,6 +670,148 @@ export default function UsersPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Edit User Modal (Popover centered in viewport scroll) */}
+      {showEditModal && popoverPosition && (
+        <>
+          <div 
+            onClick={() => { setShowEditModal(false); setSelectedUser(null); }}
+            style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }} 
+          />
+          <div style={{ 
+            position: 'absolute', 
+            top: `${popoverPosition.top}px`, 
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1000, 
+            width: '100%',
+            maxWidth: '600px',
+            padding: '1rem'
+          }}>
+            <div className="glass-card animate-scale-in" style={{ background: 'white', padding: '1.75rem', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.15)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary)' }}>Edit User Details</h3>
+                <button onClick={() => { setShowEditModal(false); setSelectedUser(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}><X size={20} /></button>
+              </div>
+              
+              <form onSubmit={handleEditUser} autoComplete="off" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Full Name</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({...editFormData, name: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Email Address</label>
+                  <input 
+                    type="email" 
+                    required
+                    value={editFormData.email}
+                    onChange={(e) => setEditFormData({...editFormData, email: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Registration / Roll No.</label>
+                  <input 
+                    type="text" 
+                    required
+                    value={editFormData.registrationNumber}
+                    onChange={(e) => setEditFormData({...editFormData, registrationNumber: e.target.value})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Role</label>
+                  <select 
+                    value={editFormData.role}
+                    onChange={(e) => setEditFormData({...editFormData, role: e.target.value, classLevel: "", program: "", semester: ""})}
+                    style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
+                  >
+                    <option value="STUDENT">Student</option>
+                    <option value="TEACHER">Teacher</option>
+                    <option value="ADMIN">Admin</option>
+                  </select>
+                </div>
+              </div>
+
+              {editFormData.role === "STUDENT" && (
+                <div style={{ display: 'grid', gridTemplateColumns: editFormData.classLevel && hasSemesters(editFormData.classLevel) ? '1fr 1fr 1fr' : '1fr 1fr', gap: '1rem', borderTop: '1px dashed #e2e8f0', paddingTop: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Class Name</label>
+                    <select 
+                      required
+                      value={editFormData.classLevel}
+                      onChange={(e) => setEditFormData({...editFormData, classLevel: e.target.value, program: "", semester: ""})}
+                      style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
+                    >
+                      <option value="">Select Class</option>
+                      {classOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Program / Stream</label>
+                    {editFormData.classLevel && hasPrograms(editFormData.classLevel) ? (
+                      <select 
+                        required
+                        value={editFormData.program}
+                        onChange={(e) => setEditFormData({...editFormData, program: e.target.value})}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
+                      >
+                        <option value="">Select Program</option>
+                        {getProgramOptions(editFormData.classLevel).map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    ) : (
+                      <input 
+                        type="text"
+                        placeholder={editFormData.classLevel ? "Custom tags or program..." : "Select class first"}
+                        disabled={!editFormData.classLevel}
+                        value={editFormData.program}
+                        onChange={(e) => setEditFormData({...editFormData, program: e.target.value})}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: editFormData.classLevel ? '#f8fafc' : '#f1f5f9', outline: 'none' }}
+                      />
+                    )}
+                  </div>
+
+                  {editFormData.classLevel && hasSemesters(editFormData.classLevel) && (
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>Semester</label>
+                      <select 
+                        required
+                        value={editFormData.semester}
+                        onChange={(e) => setEditFormData({...editFormData, semester: e.target.value})}
+                        style={{ width: '100%', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid var(--glass-border)', background: '#f8fafc', outline: 'none' }}
+                      >
+                        <option value="">Select Semester</option>
+                        {getSemesterOptions(editFormData.classLevel).map((s: string) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => { setShowEditModal(false); setSelectedUser(null); }} className="btn" style={{ flex: 1, background: '#f1f5f9' }}>Cancel</button>
+                <button type="submit" disabled={updating} className="btn btn-primary" style={{ flex: 1 }}>
+                  {updating ? <Loader2 className="animate-spin" size={20} /> : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        </>
       )}
 
       {toast && (
