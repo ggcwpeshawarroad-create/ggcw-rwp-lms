@@ -402,7 +402,7 @@ export default function UsersPage() {
                         {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
                       </td>
                       <td style={{ padding: '1.25rem 1.5rem', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', minWidth: '280px' }}>
+                        <div className="user-actions-container">
                           {user.role === "STUDENT" && (
                             <button 
                               onClick={() => handleOpenAssign(user)}
@@ -421,7 +421,8 @@ export default function UsersPage() {
                                 minWidth: '80px',
                                 justifyContent: 'center',
                                 transition: 'all 0.2s',
-                                cursor: 'pointer'
+                                cursor: 'pointer',
+                                flexShrink: 0
                               }}
                             >
                               <PlusCircle size={14} /> Course
@@ -444,7 +445,8 @@ export default function UsersPage() {
                               minWidth: '70px',
                               justifyContent: 'center',
                               transition: 'all 0.2s',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              flexShrink: 0
                             }}
                             title="Edit User"
                           >
@@ -467,7 +469,8 @@ export default function UsersPage() {
                               minWidth: '80px',
                               justifyContent: 'center',
                               transition: 'all 0.2s',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              flexShrink: 0
                             }}
                             title="Reset Password"
                           >
@@ -490,7 +493,8 @@ export default function UsersPage() {
                               minWidth: '75px',
                               justifyContent: 'center',
                               transition: 'all 0.2s',
-                              cursor: 'pointer'
+                              cursor: 'pointer',
+                              flexShrink: 0
                             }}
                             title="Delete User"
                           >

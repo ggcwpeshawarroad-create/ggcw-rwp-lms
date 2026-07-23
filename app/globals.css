@@ -851,3 +851,33 @@ body {
     padding-right: max(0.875rem, env(safe-area-inset-right)) !important;
   }
 }
+
+/* Responsive Action Buttons for Admin Users Directory */
+.user-actions-container {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+}
+
+@media (max-width: 1024px) {
+  .user-actions-container {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+  
+  .user-actions-container button {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  .user-actions-container button:last-child:nth-child(odd) {
+    grid-column: span 2 !important;
+  }
+}
+
